@@ -61,7 +61,7 @@ function updateWaterUI() {
     });
 }
 
-// Gọi API Thêm nước
+// Thêm nước uống
 async function addWater() {
     try {
         const res = await fetch("/api/lifestyle/add-water?userId=1&amount=0.25", { method: "POST" });
@@ -76,7 +76,7 @@ async function addWater() {
     }
 }
 
-// 2. RANDOM MÓN ĂN TỪ DATABASE
+// 2. RANDOM MÓN ĂN
 function openMealModal() { document.getElementById('mealModal').classList.add('open'); }
 function closeMealModal() { document.getElementById('mealModal').classList.remove('open'); }
 
@@ -105,6 +105,7 @@ async function spinRandomMealFromAPI() {
 document.addEventListener("DOMContentLoaded", function () {
     loadDashboardData();
     loadOverviewTimelines();
+    loadManageTimelines();
 
     const waterBtn = document.querySelector(".water-add-btn");
     if (waterBtn) waterBtn.addEventListener("click", addWater);
@@ -126,7 +127,7 @@ async function loadOverviewTimelines() {
         const res = await fetch("/api/lifestyle/timelines?userId=1");
         const list = await res.json();
 
-        if (list.length === 0) {
+        if (!list || list.length === 0) {
             container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem; padding: 10px 0;">Chưa có lịch trình nào. Vào tab "Kế hoạch & Lịch trình" để thiết lập mốc đầu tiên!</p>';
             return;
         }
@@ -147,7 +148,7 @@ async function loadOverviewTimelines() {
     }
 }
 
-// 5. LOAD TIMELINE QUẢN LÝ (THÊM / SỬA / XÓA)
+// 5. LOAD TIMELINE TRANG QUẢN LÝ (THÊM / SỬA / XÓA)
 async function loadManageTimelines() {
     const container = document.getElementById("manageTimelineList");
     const countBadge = document.getElementById("timelineCountBadge");
@@ -157,9 +158,9 @@ async function loadManageTimelines() {
         const res = await fetch("/api/lifestyle/timelines?userId=1");
         const list = await res.json();
 
-        if (countBadge) countBadge.textContent = `${list.length} mốc giờ`;
+        if (countBadge) countBadge.textContent = `${list ? list.length : 0} công việc`;
 
-        if (list.length === 0) {
+        if (!list || list.length === 0) {
             container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem; padding: 15px 0;">Lịch trình hôm nay chưa có mốc nào. Hãy điền khung giờ ở trên và bấm lưu!</p>';
             return;
         }
@@ -187,33 +188,50 @@ async function loadManageTimelines() {
                 </div>
             </div>
         `).join("");
-    } catch {
+    } catch (err) {
         container.innerHTML = '<p style="color:red;">Lỗi tải dữ liệu từ SQL Server!</p>';
     }
 }
 
-// Xử lý tạo mới
+// 6. XỬ LÝ LƯU VÀO DATABASE
 async function handleCreateTimeline() {
-    const timeSlot = document.getElementById("inputTimeSlot").value.trim();
-    const title = document.getElementById("inputTitle").value.trim();
-    const category = document.getElementById("inputCategory").value;
+    const timeSlotInput = document.getElementById("inputTimeSlot");
+    const titleInput = document.getElementById("inputTitle");
+    const categoryInput = document.getElementById("inputCategory");
+
+    const timeSlot = timeSlotInput ? timeSlotInput.value.trim() : "";
+    const title = titleInput ? titleInput.value.trim() : "";
+    const category = categoryInput ? categoryInput.value : "Task";
 
     if (!timeSlot || !title) {
-        showNotification("⚠️ Vui lòng nhập khung giờ và nội dung!");
+        alert("Vui lòng điền đủ khung giờ và nội dung công việc!");
         return;
     }
 
-    const res = await fetch("/api/lifestyle/timelines", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timeSlot, title, category })
-    });
+    try {
+        const res = await fetch("/api/lifestyle/timelines", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                timeSlot: timeSlot,
+                title: title,
+                category: category
+            })
+        });
 
-    if (res.ok) {
-        document.getElementById("inputTimeSlot").value = "";
-        document.getElementById("inputTitle").value = "";
-        showNotification("✅ Đã lưu vào SQL Server!");
-        loadManageTimelines();
+        if (res.ok) {
+            timeSlotInput.value = "";
+            titleInput.value = "";
+            showNotification("✅ Đã lưu thành công vào SQL Server!");
+            await loadManageTimelines();
+        } else {
+            const errorMsg = await res.text();
+            alert("Lỗi máy chủ: " + errorMsg);
+        }
+    } catch (err) {
+        alert("Lỗi đường truyền hoặc chưa khởi động máy chủ backend!");
     }
 }
 

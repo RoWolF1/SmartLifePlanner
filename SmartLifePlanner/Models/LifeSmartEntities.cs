@@ -65,6 +65,64 @@ namespace SmartLifePlanner.Models
         public DateTime PlanDate { get; set; } = DateTime.Today;
     }
 
+    [Table("DailyMeals")]
+    public class DailyMeal
+    {
+        [Key]
+        public int DailyMealId { get; set; }
+        public int UserId { get; set; }
+        public string MealType { get; set; } = string.Empty;
+        public int MealId { get; set; }
+        public DateTime PlanDate { get; set; } = DateTime.Today;
+
+        [ForeignKey("MealId")]
+        public virtual Meal? Meal { get; set; }
+    }
+
+    [Table("Activities")]
+    public class Activity
+    {
+        [Key]
+        public int ActivityId { get; set; }
+        public int UserId { get; set; }
+        public string ActivityType { get; set; } = string.Empty;
+        public int DurationSeconds { get; set; }
+        public int StepsEquivalent { get; set; }
+        public double CaloriesBurned { get; set; }
+        public DateTime LogDate { get; set; } = DateTime.Today;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    }
+
+    [Table("WaterLogs")]
+    public class WaterLog
+    {
+        [Key]
+        public int LogId { get; set; }
+        public int UserId { get; set; }
+        public int AmountMl { get; set; }
+        public string WaterType { get; set; } = "Water";
+        public int HydrationAmountMl { get; set; }
+        public int Calories { get; set; } = 0;
+        public DateTime LoggedAt { get; set; } = DateTime.Now;
+        public DateTime LogDate { get; set; } = DateTime.Today;
+    }
+
+    [Table("SleepLogs")]
+    public class SleepLog
+    {
+        [Key]
+        public int SleepId { get; set; }
+        public int UserId { get; set; }
+        public DateTime BedTime { get; set; }
+        public DateTime WakeTime { get; set; }
+        public int DurationMinutes { get; set; }
+        public int SleepCycles { get; set; }
+        public string QualityRating { get; set; } = "Normal";
+        public int SleepScore { get; set; }
+        public DateTime SleepDate { get; set; } = DateTime.Today;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    }
+
     public class LifeSmartDbContext : DbContext
     {
         public LifeSmartDbContext(DbContextOptions<LifeSmartDbContext> options) : base(options) { }
@@ -74,5 +132,9 @@ namespace SmartLifePlanner.Models
         public DbSet<Meal> Meals => Set<Meal>();
         public DbSet<DailyTracking> DailyTrackings => Set<DailyTracking>();
         public DbSet<Timeline> Timelines => Set<Timeline>();
+        public DbSet<DailyMeal> DailyMeals => Set<DailyMeal>();
+        public DbSet<Activity> Activities => Set<Activity>();
+        public DbSet<WaterLog> WaterLogs => Set<WaterLog>();
+        public DbSet<SleepLog> SleepLogs => Set<SleepLog>();
     }
 }

@@ -17,73 +17,118 @@
             background-color: #f5a623;
             color: #ffffff;
             border: none;
-            padding: 8px 14px;
+            padding: 9px 16px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
         }
 
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-            align-items: center;
-            justify-content: center;
-        }
-
-            .modal-overlay.open {
-                display: flex;
+            .btn-random:hover {
+                background-color: #d98218;
             }
 
-        .modal-content {
-            background: #fff;
-            padding: 24px;
+        .spin-box {
+            background: #fdf8f0;
+            border: 2px dashed #f5a623;
             border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
+            padding: 24px;
             text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .food-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .water-btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .water-preset-btn {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            .water-preset-btn:hover {
+                background: #dbeafe;
+            }
+
+        .sleep-cycle-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            flex: 1;
+            min-width: 130px;
         }
     </style>
 </head>
 
 <body>
     <div class="app">
-        <!-- ================= SIDEBAR ================= -->
+        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="logo">Life<span>Smart</span></div>
             <ul class="menu">
                 <li>
                     <a href="javascript:void(0)" class="active" id="tab-nav-dashboard" onclick="switchTab('dashboard')">
-                        <span>🏠</span>
-                        <span>Tổng quan</span>
+                        <span>🏠</span><span>Tổng quan</span>
                     </a>
                 </li>
                 <li>
                     <a href="javascript:void(0)" id="tab-nav-schedule" onclick="switchTab('schedule')">
-                        <span>📅</span>
-                        <span>Kế hoạch & Lịch trình</span>
+                        <span>📅</span><span>Kế hoạch & Lịch trình</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" onclick="showNotification('Chức năng đang được tích hợp!')">
-                        <span>🥗</span>
-                        <span>Thực đơn & Random</span>
+                    <a href="javascript:void(0)" id="tab-nav-meals" onclick="switchTab('meals')">
+                        <span>🥗</span><span>Thực đơn & Random</span>
                     </a>
                 </li>
-                <li><a href="javascript:void(0)" onclick="showNotification('Chức năng đang được tích hợp!')"><span>🏃</span><span>Hoạt động</span></a></li>
-                <li><a href="javascript:void(0)" onclick="showNotification('Chức năng đang được tích hợp!')"><span>💧</span><span>Uống nước</span></a></li>
-                <li><a href="javascript:void(0)" onclick="showNotification('Chức năng đang được tích hợp!')"><span>😴</span><span>Giấc ngủ</span></a></li>
-                <li><a href="javascript:void(0)" onclick="showNotification('Chức năng đang được tích hợp!')"><span>📊</span><span>Thống kê</span></a></li>
-                <li><a href="javascript:void(0)" onclick="showNotification('Chức năng đang được tích hợp!')"><span>👤</span><span>Cá nhân</span></a></li>
+                <li>
+                    <a href="javascript:void(0)" id="tab-nav-activity" onclick="switchTab('activity')">
+                        <span>🏃</span><span>Hoạt động</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="javascript:void(0)" id="tab-nav-water" onclick="switchTab('water')">
+                        <span>💧</span><span>Uống nước</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="javascript:void(0)" id="tab-nav-sleep" onclick="switchTab('sleep')">
+                        <span>😴</span><span>Giấc ngủ</span>
+                    </a>
+                </li>
+                <li><a href="javascript:void(0)" onclick="showNotification('Tính năng đang hoàn thiện!')"><span>📊</span><span>Thống kê</span></a></li>
+                <li><a href="javascript:void(0)" onclick="showNotification('Tính năng đang hoàn thiện!')"><span>👤</span><span>Cá nhân</span></a></li>
             </ul>
         </aside>
 
-        <!-- ================= MAIN ================= -->
+        <!-- MAIN -->
         <main class="main-content">
             <header class="header">
                 <div>
@@ -91,15 +136,12 @@
                     <p id="page-subtitle">Cùng theo dõi kế hoạch sinh hoạt và duy trì lối sống khoa học hôm nay.</p>
                 </div>
                 <div class="user">
-                    <div>
-                        <strong>Hiếu</strong><br>
-                        <small>Thành viên</small>
-                    </div>
+                    <div><strong>Hiếu</strong><br><small>Thành viên</small></div>
                     <div class="user-avatar">H</div>
                 </div>
             </header>
 
-            <!-- ================= VIEW 1: SẢNH TỔNG QUAN (XEM BÁO CÁO) ================= -->
+            <!-- ================= VIEW 1: SẢNH TỔNG QUAN ================= -->
             <div id="view-dashboard">
                 <section class="dashboard-cards">
                     <div class="card">
@@ -109,19 +151,19 @@
                     </div>
                     <div class="card">
                         <div class="card-header"><span class="card-title">Calo hôm nay</span><div class="card-icon">🔥</div></div>
-                        <div class="card-value" id="dash-calo">1,420</div>
-                        <div class="card-unit">/ 2,000 kcal</div>
-                        <div class="progress-box"><div class="progress"><div class="progress-bar calorie-progress" id="dash-calo-progress" style="width: 71%;"></div></div></div>
+                        <div class="card-value" id="dash-calo">0</div>
+                        <div class="card-unit" id="dash-calo-unit">/ 2,000 kcal</div>
+                        <div class="progress-box"><div class="progress"><div class="progress-bar calorie-progress" id="dash-calo-progress" style="width: 0%;"></div></div></div>
                     </div>
                     <div class="card">
                         <div class="card-header"><span class="card-title">Nước uống</span><div class="card-icon">💧</div></div>
-                        <div class="card-value water-value" id="dash-water">1.8 L</div>
-                        <div class="card-unit">/ 2.5 L</div>
-                        <div class="progress-box"><div class="progress"><div class="progress-bar water-progress" id="dash-water-progress" style="width: 72%;"></div></div></div>
+                        <div class="card-value water-value" id="dash-water">0.0 L</div>
+                        <div class="card-unit" id="dash-water-target">/ 2.5 L</div>
+                        <div class="progress-box"><div class="progress"><div class="progress-bar water-progress" id="dash-water-progress" style="width: 0%;"></div></div></div>
                     </div>
                     <div class="card">
                         <div class="card-header"><span class="card-title">Vận động</span><div class="card-icon">🏃</div></div>
-                        <div class="card-value" id="dash-steps">6,842</div>
+                        <div class="card-value" id="dash-steps">0</div>
                         <div class="card-unit">bước hôm nay</div>
                     </div>
                 </section>
@@ -129,63 +171,88 @@
                 <section class="recommendation" style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <h2>🤖 Gợi ý & Trợ lý thông minh</h2>
-                        <p>Hôm nay lịch trình học tập bận rộn. Bạn nên ăn uống đúng bữa và nạp đủ 2.5L nước để giữ năng lượng.</p>
+                        <p id="dashRecommendationText">Dinh dưỡng và vận động đóng góp 100% vào năng lượng của bạn. Hãy ghi nhận đủ hôm nay nhé!</p>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn btn-primary menu-recommend-btn">Xem gợi ý AI</button>
-                        <button class="btn-random" onclick="openMealModal()">🎲 Quay món ngẫu nhiên</button>
-                    </div>
+                    <button class="btn-random" onclick="switchTab('meals')">🎲 Tới Vòng quay món ăn</button>
                 </section>
 
                 <section class="content-grid">
+                    <!-- THỰC ĐƠN ĐỘNG TRÊN SẢNH -->
                     <div class="section">
                         <div class="section-title">
                             <h2>🍱 Thực đơn hôm nay</h2>
-                            <button class="btn-random" style="font-size:0.8rem;" onclick="openMealModal()">🎲 Đổi món</button>
+                            <button class="btn-random" style="font-size:0.8rem;" onclick="switchTab('meals')">🎲 Chọn món</button>
                         </div>
                         <div class="meal-list">
                             <div class="meal-card">
-                                <div class="meal-info"><div class="meal-image">🍳</div><div><div class="meal-name" id="meal-breakfast-name">Bữa sáng - Trứng & bánh mì</div><div class="meal-type">Giàu protein • 07:30</div></div></div>
-                                <div class="meal-calories">420 kcal</div>
+                                <div class="meal-info">
+                                    <div class="meal-image">🍳</div>
+                                    <div>
+                                        <div class="meal-name" id="overview-meal-breakfast">Bữa sáng - Chưa chọn món</div>
+                                        <div class="meal-type" id="overview-tag-breakfast">Bấm đổi món để chọn</div>
+                                    </div>
+                                </div>
+                                <div class="meal-calories" id="overview-calo-breakfast">0 kcal</div>
                             </div>
                             <div class="meal-card">
-                                <div class="meal-info"><div class="meal-image">🍗</div><div><div class="meal-name" id="meal-lunch-name">Bữa trưa - Cơm gà & rau</div><div class="meal-type">Cân bằng dinh dưỡng • 12:00</div></div></div>
-                                <div class="meal-calories">620 kcal</div>
+                                <div class="meal-info">
+                                    <div class="meal-image">🍗</div>
+                                    <div>
+                                        <div class="meal-name" id="overview-meal-lunch">Bữa trưa - Chưa chọn món</div>
+                                        <div class="meal-type" id="overview-tag-lunch">Bấm đổi món để chọn</div>
+                                    </div>
+                                </div>
+                                <div class="meal-calories" id="overview-calo-lunch">0 kcal</div>
                             </div>
                             <div class="meal-card">
-                                <div class="meal-info"><div class="meal-image">🐟</div><div><div class="meal-name" id="meal-dinner-name">Bữa tối - Cá & rau củ</div><div class="meal-type">Ít chất béo • 18:30</div></div></div>
-                                <div class="meal-calories">440 kcal</div>
+                                <div class="meal-info">
+                                    <div class="meal-image">🐟</div>
+                                    <div>
+                                        <div class="meal-name" id="overview-meal-dinner">Bữa tối - Chưa chọn món</div>
+                                        <div class="meal-type" id="overview-tag-dinner">Bấm đổi món để chọn</div>
+                                    </div>
+                                </div>
+                                <div class="meal-calories" id="overview-calo-dinner">0 kcal</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Lịch trình xem tóm tắt ở sảnh -->
+                    <!-- LỊCH TRÌNH ĐỘNG TRÊN SẢNH -->
                     <div class="section">
                         <div class="section-title">
                             <h2>📅 Lịch trình hôm nay</h2>
                             <span class="badge badge-blue">Xem nhanh</span>
                         </div>
-                        <div class="timeline-container" id="overviewTimelineList">
-                            <!-- Nạp danh sách từ SQL Server -->
-                        </div>
+                        <div class="timeline-container" id="overviewTimelineList"></div>
                     </div>
                 </section>
 
-                <section class="section">
-                    <div class="section-title"><h2>💧 Theo dõi lượng nước</h2><span class="badge badge-blue">Mục tiêu 2.5L</span></div>
-                    <p>Đã uống <strong class="water-value">1.8 L</strong> / 2.5 L hôm nay.</p>
-                    <div class="water-container">
-                        <div class="water-glass active"></div><div class="water-glass active"></div>
-                        <div class="water-glass active"></div><div class="water-glass active"></div>
-                        <div class="water-glass active"></div><div class="water-glass active"></div>
-                        <div class="water-glass"></div><div class="water-glass"></div>
+                <!-- THẺ GIẤC NGỦ ĐÊM QUA & THEO DÕI NƯỚC TẠI SẢNH -->
+                <section class="content-grid" style="margin-top: 20px;">
+                    <div class="section">
+                        <div class="section-title"><h2>💧 Theo dõi lượng nước</h2><span class="badge badge-blue" id="waterGoalPercentBadge">0% mục tiêu</span></div>
+                        <p>Đã uống <strong class="water-value">0.0 L</strong> / <span id="dashWaterGoalSpan">2.5 L</span> hôm nay.</p>
+                        <div class="water-container">
+                            <div class="water-glass"></div><div class="water-glass"></div>
+                            <div class="water-glass"></div><div class="water-glass"></div>
+                            <div class="water-glass"></div><div class="water-glass"></div>
+                            <div class="water-glass"></div><div class="water-glass"></div>
+                        </div>
+                        <br>
+                        <button class="btn btn-primary" onclick="switchTab('water')">Vào quản lý nước chi tiết 💧</button>
                     </div>
-                    <br>
-                    <button class="btn btn-primary water-add-btn">+ Thêm nước (250ml)</button>
+
+                    <div class="section">
+                        <div class="section-title"><h2>😴 Giấc ngủ gần nhất</h2><span class="badge badge-blue" id="dashSleepStatusBadge">Chưa ghi nhận</span></div>
+                        <div id="dashSleepDetailBox" style="padding: 10px 0;">
+                            <p style="color:var(--gray); font-size:0.95rem;">Bạn chưa ghi nhận giấc ngủ đêm qua. Hãy bấm vào để tính chu kỳ và ghi nhận điểm phục hồi!</p>
+                        </div>
+                        <button class="btn btn-primary" style="background:#8b5cf6;" onclick="switchTab('sleep')">Tính chu kỳ giấc ngủ 🌙</button>
+                    </div>
                 </section>
             </div>
 
-            <!-- ================= VIEW 2: TRANG QUẢN LÝ LỊCH TRÌNH (THÊM / SỬA / XÓA) ================= -->
+            <!-- ================= VIEW 2: TRANG QUẢN LÝ LỊCH TRÌNH ================= -->
             <div id="view-schedule" style="display: none;">
                 <div class="section" style="margin-bottom: 24px;">
                     <div class="section-title"><h2>➕ Thiết lập mốc thời gian mới</h2></div>
@@ -209,66 +276,901 @@
                         <h2>📋 Danh sách lịch trình chi tiết trong ngày</h2>
                         <span class="badge badge-blue" id="timelineCountBadge">0 công việc</span>
                     </div>
-                    <div id="manageTimelineList" style="display: flex; flex-direction: column; gap: 12px;">
-                        <!-- Danh sách động kèm Sửa, Xóa -->
+                    <div id="manageTimelineList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 3: TRANG THỰC ĐƠN & RANDOM MÓN ĂN ================= -->
+            <div id="view-meals" style="display: none;">
+                <div class="spin-box">
+                    <h2 style="color: #d98218; margin-bottom: 8px;">🎲 Vòng quay ngẫu nhiên: Hôm nay ăn gì?</h2>
+                    <p style="color: var(--gray); font-size: 0.95rem; margin-bottom: 20px;">
+                        Hệ thống sẽ lấy món ăn từ kho SQL Server dựa trên bữa bạn chọn.
+                    </p>
+                    <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px;">
+                        <select id="wheelMealType" style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 1rem; font-weight: 600;">
+                            <option value="Breakfast">🍳 Bữa sáng</option>
+                            <option value="Lunch" selected>🍗 Bữa trưa</option>
+                            <option value="Dinner">🐟 Bữa tối</option>
+                        </select>
+                        <button class="btn-random" style="font-size: 1rem; padding: 10px 24px;" onclick="handleSpinFood()">Quay món ngay!</button>
+                    </div>
+
+                    <div id="spinResultCard" style="display:none; background:#fff; border-radius:12px; padding:20px; max-width:460px; margin:0 auto; box-shadow:var(--card-shadow); border: 1px solid #fed7aa;">
+                        <div style="font-size:1.5rem; font-weight:800; color:var(--dark);" id="spinFoodName">Cơm gà</div>
+                        <div style="margin: 8px 0; color: var(--gray);" id="spinFoodMeta">🔥 0 kcal</div>
+                        <div style="font-size:0.85rem; color:#d98218; font-weight:600; margin-bottom:15px;" id="spinFoodTag">Gợi ý</div>
+                        <button class="btn btn-primary" id="btnApplySpinFood" style="width:100%;">
+                            ✅ Áp dụng món này vào Thực đơn hôm nay
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-bottom: 24px;">
+                    <div class="section-title"><h2>➕ Thêm món mới vào kho dữ liệu</h2></div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" id="newMealName" placeholder="Tên món ăn (VD: Bún riêu cua)" style="flex:2; min-width:180px; padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+                        <select id="newMealType" style="flex:1; min-width:120px; padding:9px 12px; border:1px solid var(--border); border-radius:8px;">
+                            <option value="Breakfast">Bữa sáng</option>
+                            <option value="Lunch">Bữa trưa</option>
+                            <option value="Dinner">Bữa tối</option>
+                        </select>
+                        <input type="number" id="newMealCalo" placeholder="Calo (kcal)" style="width:120px; padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+                        <input type="number" id="newMealPrice" placeholder="Giá (VNĐ)" style="width:130px; padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+                        <button class="btn btn-primary" onclick="handleCreateMeal()">+ Lưu món vào DB</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <h2>📚 Kho thực đơn trong Database</h2>
+                        <span class="badge badge-blue" id="totalMealsBadge">0 món</span>
+                    </div>
+                    <div class="food-grid" id="mealGridList"></div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 4: HOẠT ĐỘNG & TẬP LUYỆN ================= -->
+            <div id="view-activity" style="display: none;">
+                <div class="section" style="margin-bottom: 24px; text-align: center; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe;">
+                    <h2 style="color: #1d4ed8; margin-bottom: 6px;">⏱️ Đồng hồ tập luyện trực tiếp</h2>
+                    <p style="color: var(--gray); font-size: 0.9rem;">Bấm bắt đầu khi bạn tập luyện; thời gian sẽ được đếm và lưu chính xác từng giây</p>
+
+                    <div style="display: flex; justify-content: center; gap: 12px; margin: 12px 0;">
+                        <select id="timerSportType" style="padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); font-weight: 600;">
+                            <option value="Running">🏃 Chạy bộ (~2.5 bước/giây)</option>
+                            <option value="Walking" selected>🚶 Đi bộ (~1.8 bước/giây)</option>
+                            <option value="Cycling">🚴 Đạp xe (~1.5 nhịp/giây)</option>
+                            <option value="Gym">🏋️ Tập Gym / Kháng lực (~1.0 nhịp/giây)</option>
+                        </select>
+                    </div>
+
+                    <div style="font-size: 3.2rem; font-weight: 800; color: #1e40af; margin: 10px 0;" id="stopwatchDisplay">00:00</div>
+
+                    <div style="display: flex; justify-content: center; gap: 10px;">
+                        <button class="btn btn-primary" id="btnTimerStart" onclick="startWorkoutTimer()">Bắt đầu tập</button>
+                        <button class="btn" style="background: #ef4444; color: #fff; display: none;" id="btnTimerStop" onclick="stopWorkoutTimer()">Kết thúc & Lưu</button>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-bottom: 24px;">
+                    <div class="section-title"><h2>➕ Ghi nhận bài tập thủ công</h2></div>
+                    <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 16px;">
+                        Nhập thời gian tập (chọn nhập theo Phút hoặc Giây). Hệ thống sẽ tự quy đổi ra bước chân và calo tiêu hao chuẩn xác.
+                    </p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <select id="inputActType" style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;">
+                            <option value="Running">🏃 Chạy bộ</option>
+                            <option value="Walking" selected>🚶 Đi bộ</option>
+                            <option value="Cycling">🚴 Đạp xe</option>
+                            <option value="Gym">🏋️ Tập Gym / Kháng lực</option>
+                        </select>
+                        <input type="number" id="inputActValue" placeholder="Số lượng..." style="width: 140px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;" />
+                        <select id="inputActUnit" style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;">
+                            <option value="seconds">Giây</option>
+                            <option value="minutes" selected>Phút</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="handleLogActivityManual()">Lưu vận động</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h2>📋 Nhật ký vận động hôm nay</h2>
+                            <span class="badge badge-blue" id="activityCountBadge">0 buổi tập</span>
+                        </div>
+                        <button class="btn" style="background: #fee2e2; color: #dc2626; font-size: 0.8rem; padding: 6px 12px;" onclick="handleResetAllActivities()">
+                            🔄 Reset hôm nay về 0
+                        </button>
+                    </div>
+                    <div id="todayActivityList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;"></div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 5: UỐNG NƯỚC (HYDRATION TRACKER CHI TIẾT) ================= -->
+            <div id="view-water" style="display: none;">
+                <!-- Thẻ mục tiêu cá nhân hóa -->
+                <div class="section" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border: 1px solid #7dd3fc; margin-bottom: 24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h2 style="color: #0369a1; margin-bottom: 6px;">💧 Mục tiêu nước cá nhân hóa hôm nay</h2>
+                            <p style="color: #0f172a; font-size: 0.95rem;" id="waterFormulaDesc">
+                                Tính theo cân nặng của bạn và số phút tập luyện trong ngày.
+                            </p>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size: 2.2rem; font-weight: 800; color: #0284c7;" id="waterTargetLitersDisplay">2.5 L</div>
+                            <small style="color: #0369a1; font-weight: 600;">Mục tiêu hôm nay</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thêm nhanh cốc nước -->
+                <div class="section" style="margin-bottom: 24px;">
+                    <div class="section-title"><h2>⚡ Thêm nhanh cốc nước</h2></div>
+                    <p style="color:var(--gray); font-size:0.9rem;">Chọn loại đồ uống và dung tích cốc:</p>
+
+                    <div style="margin: 12px 0; display:flex; gap:12px; align-items:center;">
+                        <label style="font-weight:600;">Loại nước:</label>
+                        <select id="waterTypeSelect" style="padding: 8px 14px; border:1px solid var(--border); border-radius:8px;">
+                            <option value="Water">💧 Nước lọc (100% bù nước)</option>
+                            <option value="Tea">🍵 Trà xanh (85% bù nước)</option>
+                            <option value="Coffee">☕ Cà phê (80% bù nước)</option>
+                            <option value="Milk">🥛 Sữa hạt (+50 kcal / 100ml)</option>
+                            <option value="Juice">🍊 Nước ép (+45 kcal / 100ml)</option>
+                        </select>
+                    </div>
+
+                    <div class="water-btn-group">
+                        <button class="water-preset-btn" onclick="handleQuickWater(150)">+ 150ml (Tách trà)</button>
+                        <button class="water-preset-btn" onclick="handleQuickWater(250)">+ 250ml (Cốc chuẩn)</button>
+                        <button class="water-preset-btn" onclick="handleQuickWater(500)">+ 500ml (Chai nước)</button>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
+                        <input type="number" id="customWaterAmount" placeholder="Nhập số ml tùy chỉnh (VD: 330)" style="width:240px; padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+                        <button class="btn btn-primary" onclick="handleCustomWater()">+ Thêm vào nhật ký</button>
+                    </div>
+                </div>
+
+                <!-- Nhật ký từng lần uống nước -->
+                <div class="section">
+                    <div class="section-title">
+                        <h2>📋 Nhật ký uống nước hôm nay</h2>
+                        <span class="badge badge-blue" id="waterLogCountBadge">0 lần</span>
+                    </div>
+                    <div id="waterLogList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;"></div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 6: GIẤC NGỦ & CHU KỲ (SLEEP & RECOVERY) ================= -->
+            <div id="view-sleep" style="display: none;">
+                <!-- Bộ tính toán chu kỳ ngủ 90 phút -->
+                <div class="section" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #ddd6fe; margin-bottom: 24px;">
+                    <h2 style="color: #6d28d9; margin-bottom: 6px;">🌙 Máy tính chu kỳ giấc ngủ (90 Phút)</h2>
+                    <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 16px;">
+                        Thức dậy giữa các chu kỳ ngủ sâu sẽ giúp bạn luôn sảng khoái và không bị uể oải.
+                    </p>
+
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                        <label style="font-weight:600;">Tôi muốn thức dậy lúc:</label>
+                        <input type="time" id="calcWakeTime" value="06:30" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border);" />
+                        <button class="btn btn-primary" style="background:#7c3aed;" onclick="calculateBedtimes()">Tính giờ nên đi ngủ</button>
+                    </div>
+
+                    <div id="suggestedBedtimesContainer" style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;"></div>
+                </div>
+
+                <!-- Ghi nhận giấc ngủ đêm qua -->
+                <div class="section" style="margin-bottom: 24px;">
+                    <div class="section-title"><h2>➕ Ghi nhận giấc ngủ đêm qua</h2></div>
+                    <div style="display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px;">
+                        <div>
+                            <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Giờ bắt đầu ngủ:</label>
+                            <input type="time" id="inputSleepBed" value="23:00" style="padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Giờ thức dậy:</label>
+                            <input type="time" id="inputSleepWake" value="06:30" style="padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Cảm giác sau khi dậy:</label>
+                            <select id="inputSleepRating" style="padding:9px 12px; border:1px solid var(--border); border-radius:8px;">
+                                <option value="Energetic">⚡ Tràn đầy năng lượng</option>
+                                <option value="Normal" selected>🙂 Bình thường</option>
+                                <option value="Tired">😴 Còn buồn ngủ / Mệt</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="background:#7c3aed;" onclick="handleSaveSleepLog()">Lưu & Chấm điểm giấc ngủ</button>
+                </div>
+
+                <!-- Thống kê điểm giấc ngủ hôm nay -->
+                <div class="section">
+                    <div class="section-title">
+                        <h2>📊 Đánh giá chất lượng & Điểm hồi phục</h2>
+                        <span class="badge badge-blue" id="sleepScoreBadge">-- Điểm</span>
+                    </div>
+                    <div id="sleepDetailResult" style="padding: 10px 0;">
+                        <p style="color:var(--gray); font-size:0.95rem;">Chưa có dữ liệu giấc ngủ hôm nay.</p>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- MODAL QUAY MÓN -->
-    <div class="modal-overlay" id="mealModal">
-        <div class="modal-content">
-            <h3>🎲 Hôm nay ăn gì?</h3>
-            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 6px;">Chọn bữa và quay món từ cơ sở dữ liệu:</p>
-            <div style="margin: 15px 0;">
-                <select id="mealTypeSelect" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); width: 80%;">
-                    <option value="Breakfast">Bữa sáng</option>
-                    <option value="Lunch" selected>Bữa trưa</option>
-                    <option value="Dinner">Bữa tối</option>
-                </select>
-            </div>
-            <div id="spinResult" style="font-weight: bold; color: var(--success); min-height: 35px; margin: 15px 0;">👉 Bấm nút bên dưới để quay</div>
-            <div style="display: flex; justify-content: center; gap: 10px;">
-                <button class="btn-random" onclick="spinRandomMealFromAPI()">Quay ngay!</button>
-                <button class="btn" style="background:#e1e8ed; color:var(--dark);" onclick="closeMealModal()">Đóng</button>
-            </div>
-        </div>
-    </div>
+    <!-- TOAST NOTIFICATION -->
+    <div class="notification" id="toastBox"></div>
 
-    <script src="/js/script.js"></script>
+    <!-- JAVASCRIPT TRỰC TIẾP -->
     <script>
-        // Hàm chuyển đổi tab gắn trực tiếp vào sự kiện click
+        let currentSpunMeal = null;
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let currentWater = 0.0;
+        let targetWater = 2.5;
+
+        function showNotification(message) {
+            let notification = document.getElementById("toastBox");
+            if (!notification) return;
+            notification.textContent = message;
+            notification.style.opacity = "1";
+            clearTimeout(notification.timer);
+            notification.timer = setTimeout(() => { notification.style.opacity = "0"; }, 2500);
+        }
+
+        function formatDuration(totalSeconds) {
+            if (totalSeconds < 60) return `${totalSeconds} giây`;
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            if (secs === 0) return `${mins} phút`;
+            return `${mins} phút ${secs} giây`;
+        }
+
+        // ================= ĐIỀU HƯỚNG TAB =================
         function switchTab(tabName) {
-            const viewDash = document.getElementById("view-dashboard");
-            const viewSche = document.getElementById("view-schedule");
-            const navDash = document.getElementById("tab-nav-dashboard");
-            const navSche = document.getElementById("tab-nav-schedule");
+            const tabs = ['dashboard', 'schedule', 'meals', 'activity', 'water', 'sleep'];
+            tabs.forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const nav = document.getElementById(`tab-nav-${t}`);
+                if (view) view.style.display = (t === tabName) ? "block" : "none";
+                if (nav) nav.classList.toggle("active", t === tabName);
+            });
+
             const titleEl = document.getElementById("page-title");
-            const subtitleEl = document.getElementById("page-subtitle");
+            const subEl = document.getElementById("page-subtitle");
 
             if (tabName === "dashboard") {
-                if (viewDash) viewDash.style.display = "block";
-                if (viewSche) viewSche.style.display = "none";
-                if (navDash) navDash.classList.add("active");
-                if (navSche) navSche.classList.remove("active");
-
-                if (titleEl) titleEl.textContent = "Xin chào, Hiếu 👋";
-                if (subtitleEl) subtitleEl.textContent = "Cùng theo dõi kế hoạch sinh hoạt và duy trì lối sống khoa học hôm nay.";
-                if (typeof loadOverviewTimelines === "function") loadOverviewTimelines();
-            }
-            else if (tabName === "schedule") {
-                if (viewDash) viewDash.style.display = "none";
-                if (viewSche) viewSche.style.display = "block";
-                if (navDash) navDash.classList.remove("active");
-                if (navSche) navSche.classList.add("active");
-
-                if (titleEl) titleEl.textContent = "Kế hoạch & Lịch trình 📅";
-                if (subtitleEl) subtitleEl.textContent = "Tự do điều chỉnh, thêm, sửa hoặc xóa các mốc thời gian trong ngày.";
-                if (typeof loadManageTimelines === "function") loadManageTimelines();
+                titleEl.textContent = "Xin chào, Hiếu 👋";
+                subEl.textContent = "Cùng theo dõi kế hoạch sinh hoạt và duy trì lối sống khoa học hôm nay.";
+                loadDashboardData();
+                loadTodayMealsOverview();
+                loadOverviewTimelines();
+            } else if (tabName === "schedule") {
+                titleEl.textContent = "Kế hoạch & Lịch trình 📅";
+                subEl.textContent = "Tự do điều chỉnh, thêm, sửa hoặc xóa các mốc thời gian trong ngày.";
+                loadManageTimelines();
+            } else if (tabName === "meals") {
+                titleEl.textContent = "Thực đơn & Random món ăn 🥗";
+                subEl.textContent = "Quay món ngẫu nhiên, áp dụng vào thực đơn ngày và tính toán Calo tự động.";
+                loadMealInventory();
+            } else if (tabName === "activity") {
+                titleEl.textContent = "Nhật ký Hoạt động & Vận động 🏃";
+                subEl.textContent = "Theo dõi thời gian tập luyện và quy đổi bước chân chuẩn xác từng giây.";
+                loadTodayActivities();
+            } else if (tabName === "water") {
+                titleEl.textContent = "Theo dõi Lượng nước Uống 💧";
+                subEl.textContent = "Quản lý lượng nước cá nhân hóa và ghi nhật ký từng ly nước trong ngày.";
+                loadWaterSummary();
+            } else if (tabName === "sleep") {
+                titleEl.textContent = "Giấc ngủ & Điểm hồi phục 😴";
+                subEl.textContent = "Tính toán chu kỳ ngủ 90 phút và chấm điểm chất lượng giấc ngủ.";
+                calculateBedtimes();
+                loadSleepToday();
             }
         }
+
+        // ================= 1. DASHBOARD =================
+        async function loadDashboardData() {
+            try {
+                const res = await fetch("/api/lifestyle/dashboard-data?userId=1");
+                if (!res.ok) return;
+                const data = await res.json();
+
+                document.getElementById("dash-bmi").innerText = data.bmi;
+                document.getElementById("dash-calo").innerText = data.caloriesConsumed.toLocaleString();
+                document.getElementById("dash-calo-unit").innerText = `/ ${data.targetCalories.toLocaleString()} kcal`;
+
+                const caloPercent = Math.min((data.caloriesConsumed / data.targetCalories) * 100, 100);
+                document.getElementById("dash-calo-progress").style.width = caloPercent + "%";
+
+                currentWater = data.waterConsumed;
+                targetWater = data.targetWater;
+                document.getElementById("dash-water-target").innerText = `/ ${targetWater.toFixed(1)} L`;
+                document.getElementById("dashWaterGoalSpan").innerText = `${targetWater.toFixed(1)} L`;
+                updateWaterUI();
+
+                document.getElementById("dash-steps").innerText = data.stepsCount.toLocaleString();
+
+                // Cập nhật thẻ giấc ngủ ở Sảnh
+                const sleepBadge = document.getElementById("dashSleepStatusBadge");
+                const sleepBox = document.getElementById("dashSleepDetailBox");
+                const recText = document.getElementById("dashRecommendationText");
+
+                if (data.latestSleep) {
+                    const hours = (data.latestSleep.durationMinutes / 60.0).toFixed(1);
+                    sleepBadge.innerText = `${data.latestSleep.sleepScore} Điểm`;
+                    sleepBox.innerHTML = `
+                            <div style="font-size:1.1rem; font-weight:700; color:var(--dark); margin-bottom:4px;">Đêm qua ngủ ${hours} tiếng</div>
+                            <div style="font-size:0.9rem; color:var(--gray);">Chất lượng: <strong>${data.latestSleep.qualityRating === 'Energetic' ? 'Rất khỏe khoắn ⚡' : data.latestSleep.qualityRating === 'Normal' ? 'Bình thường 🙂' : 'Mệt mỏi 😴'}</strong></div>
+                        `;
+
+                    if (data.latestSleep.durationMinutes < 360) {
+                        recText.innerText = "⚠️ Đêm qua bạn ngủ dưới 6 tiếng. Hãy bổ sung nước thường xuyên và tránh các bài tập nặng nhé!";
+                    } else {
+                        recText.innerText = "✨ Giấc ngủ đêm qua rất tốt! Bạn đã sẵn sàng năng lượng cho ngày làm việc hôm nay.";
+                    }
+                } else {
+                    sleepBadge.innerText = "Chưa ghi nhận";
+                    sleepBox.innerHTML = `<p style="color:var(--gray); font-size:0.95rem;">Bạn chưa ghi nhận giấc ngủ đêm qua. Hãy bấm vào để tính chu kỳ và ghi nhận điểm phục hồi!</p>`;
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function updateWaterUI() {
+            const valueEls = document.querySelectorAll(".water-value");
+            valueEls.forEach(el => el.innerText = currentWater.toFixed(1) + " L");
+
+            const percent = Math.min((currentWater / targetWater) * 100, 100);
+            const prog = document.getElementById("dash-water-progress");
+            if (prog) prog.style.width = percent + "%";
+
+            const badge = document.getElementById("waterGoalPercentBadge");
+            if (badge) badge.innerText = Math.round(percent) + "% mục tiêu";
+
+            document.querySelectorAll(".water-glass").forEach((glass, index) => {
+                if (currentWater >= (index + 1) * 0.25) {
+                    glass.classList.add("active");
+                } else {
+                    glass.classList.remove("active");
+                }
+            });
+        }
+
+        async function loadTodayMealsOverview() {
+            try {
+                const res = await fetch("/api/lifestyle/today-meals?userId=1");
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.breakfast) {
+                    document.getElementById("overview-meal-breakfast").innerText = `Bữa sáng - ${data.breakfast.mealName}`;
+                    document.getElementById("overview-tag-breakfast").innerText = data.breakfast.tag || "Đã chốt món";
+                    document.getElementById("overview-calo-breakfast").innerText = `${data.breakfast.calories} kcal`;
+                } else {
+                    document.getElementById("overview-meal-breakfast").innerText = "Bữa sáng - Chưa chọn món";
+                    document.getElementById("overview-tag-breakfast").innerText = "Bấm đổi món để chọn";
+                    document.getElementById("overview-calo-breakfast").innerText = "0 kcal";
+                }
+
+                if (data.lunch) {
+                    document.getElementById("overview-meal-lunch").innerText = `Bữa trưa - ${data.lunch.mealName}`;
+                    document.getElementById("overview-tag-lunch").innerText = data.lunch.tag || "Đã chốt món";
+                    document.getElementById("overview-calo-lunch").innerText = `${data.lunch.calories} kcal`;
+                } else {
+                    document.getElementById("overview-meal-lunch").innerText = "Bữa trưa - Chưa chọn món";
+                    document.getElementById("overview-tag-lunch").innerText = "Bấm đổi món để chọn";
+                    document.getElementById("overview-calo-lunch").innerText = "0 kcal";
+                }
+
+                if (data.dinner) {
+                    document.getElementById("overview-meal-dinner").innerText = `Bữa tối - ${data.dinner.mealName}`;
+                    document.getElementById("overview-tag-dinner").innerText = data.dinner.tag || "Đã chốt món";
+                    document.getElementById("overview-calo-dinner").innerText = `${data.dinner.calories} kcal`;
+                } else {
+                    document.getElementById("overview-meal-dinner").innerText = "Bữa tối - Chưa chọn món";
+                    document.getElementById("overview-tag-dinner").innerText = "Bấm đổi món để chọn";
+                    document.getElementById("overview-calo-dinner").innerText = "0 kcal";
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        // ================= 2. QUẢN LÝ NƯỚC UỐNG (WATER TRACKER) =================
+        async function loadWaterSummary() {
+            try {
+                const res = await fetch("/api/lifestyle/water-summary?userId=1");
+                if (!res.ok) return;
+                const data = await res.json();
+
+                targetWater = data.targetWater;
+                currentWater = data.consumedWater;
+
+                document.getElementById("waterTargetLitersDisplay").innerText = `${data.targetWater} L`;
+                document.getElementById("waterFormulaDesc").innerText = `Hôm nay bạn đã vận động ${data.workoutMinutes} phút. Hệ thống tự động điều chỉnh mục tiêu nước lên ${data.targetWater} L.`;
+
+                const badge = document.getElementById("waterLogCountBadge");
+                const listContainer = document.getElementById("waterLogList");
+                badge.innerText = `${data.logs.length} lần`;
+
+                if (data.logs.length === 0) {
+                    listContainer.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Chưa có lần uống nước nào hôm nay. Hãy uống một ly nước lọc để khởi đầu nhé!</p>';
+                    return;
+                }
+
+                listContainer.innerHTML = data.logs.map(l => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:8px;">
+                            <div>
+                                <strong>${l.waterType === 'Water' ? '💧 Nước lọc' : l.waterType === 'Tea' ? '🍵 Trà' : l.waterType === 'Coffee' ? '☕ Cà phê' : l.waterType === 'Milk' ? '🥛 Sữa' : '🍊 Nước ép'}</strong>
+                                <span style="color:var(--gray); font-size:0.85rem; margin-left:8px;">Lúc ${l.time} • Dung tích: ${l.amountMl}ml</span>
+                                ${l.calories > 0 ? `<span style="color:var(--warning); font-size:0.8rem; margin-left:6px;">(+${l.calories} kcal)</span>` : ''}
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-weight:700; color:#0284c7;">+${l.hydrationAmountMl}ml bù nước</span>
+                                <button class="btn" style="background:#fee2e2; color:#ef4444; font-size:0.75rem; padding:4px 8px;" onclick="handleDeleteWaterLog(${l.logId})">🗑️</button>
+                            </div>
+                        </div>
+                    `).join("");
+            } catch (err) { console.error(err); }
+        }
+
+        async function saveWaterToBackend(amountMl, waterType) {
+            try {
+                const res = await fetch("/api/lifestyle/water-logs?userId=1", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ amountMl: amountMl, waterType: waterType })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    showNotification(`💧 ${data.message} (+${data.hydrationMl}ml)`);
+                    loadWaterSummary();
+                    loadDashboardData();
+                }
+            } catch { alert("Lỗi ghi nhận nước!"); }
+        }
+
+        function handleQuickWater(ml) {
+            const type = document.getElementById("waterTypeSelect").value;
+            saveWaterToBackend(ml, type);
+        }
+
+        function handleCustomWater() {
+            const val = parseInt(document.getElementById("customWaterAmount").value);
+            const type = document.getElementById("waterTypeSelect").value;
+            if (!val || val <= 0) return alert("Vui lòng nhập số ml hợp lệ!");
+            saveWaterToBackend(val, type);
+            document.getElementById("customWaterAmount").value = "";
+        }
+
+        async function handleDeleteWaterLog(id) {
+            if (!confirm("Bạn có chắc muốn xóa lần uống nước này?")) return;
+            try {
+                const res = await fetch(`/api/lifestyle/water-logs/${id}?userId=1`, { method: "DELETE" });
+                if (res.ok) {
+                    showNotification("🗑️ Đã xóa lần uống nước!");
+                    loadWaterSummary();
+                    loadDashboardData();
+                }
+            } catch { alert("Lỗi khi xóa!"); }
+        }
+
+        // ================= 3. GIẤC NGỦ & CHU KỲ (SLEEP TRACKER) =================
+        function calculateBedtimes() {
+            const wakeVal = document.getElementById("calcWakeTime").value;
+            if (!wakeVal) return;
+
+            const [hours, minutes] = wakeVal.split(":").map(Number);
+            const wakeDate = new Date();
+            wakeDate.setHours(hours, minutes, 0, 0);
+
+            // Tính lùi các mốc 6, 5, 4, 3 chu kỳ (mỗi chu kỳ 90 phút + 15 phút thời gian chợp mắt)
+            const cycles = [6, 5, 4, 3];
+            const container = document.getElementById("suggestedBedtimesContainer");
+
+            container.innerHTML = cycles.map(c => {
+                const totalMinutesBack = (c * 90) + 15;
+                const bedDate = new Date(wakeDate.getTime() - totalMinutesBack * 60000);
+                const timeString = bedDate.toTimeString().substring(0, 5);
+                const sleepHours = (c * 1.5).toFixed(1);
+
+                return `
+                        <div class="sleep-cycle-card" style="border-top: 4px solid ${c >= 5 ? 'var(--success)' : c === 4 ? 'var(--warning)' : '#ef4444'};">
+                            <div style="font-size:1.3rem; font-weight:800; color:#4c1d95;">${timeString}</div>
+                            <div style="font-size:0.85rem; font-weight:700; color:var(--dark); margin:4px 0;">${c} chu kỳ (${sleepHours}h)</div>
+                            <small style="color:var(--gray); font-size:0.75rem;">${c >= 5 ? 'Khuyên dùng ⭐' : c === 4 ? 'Vừa đủ' : 'Hơi ít'}</small>
+                        </div>
+                    `;
+            }).join("");
+        }
+
+        async function handleSaveSleepLog() {
+            const bedVal = document.getElementById("inputSleepBed").value;
+            const wakeVal = document.getElementById("inputSleepWake").value;
+            const rating = document.getElementById("inputSleepRating").value;
+
+            if (!bedVal || !wakeVal) return alert("Vui lòng nhập đủ giờ ngủ và thức dậy!");
+
+            const todayStr = new Date().toISOString().split("T")[0];
+            const bedTime = `${todayStr}T${bedVal}:00`;
+            const wakeTime = `${todayStr}T${wakeVal}:00`;
+
+            try {
+                const res = await fetch("/api/lifestyle/sleep-logs?userId=1", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        bedTime: bedTime,
+                        wakeTime: wakeTime,
+                        qualityRating: rating
+                    })
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    showNotification(`🌙 ${result.message} (${result.durationHours}h - Điểm: ${result.sleepScore})`);
+                    loadSleepToday();
+                    loadDashboardData();
+                } else {
+                    const err = await res.text();
+                    alert("Lỗi: " + err);
+                }
+            } catch { alert("Lỗi lưu giấc ngủ!"); }
+        }
+
+        async function loadSleepToday() {
+            try {
+                const res = await fetch("/api/lifestyle/sleep-today?userId=1");
+                const data = await res.json();
+                const badge = document.getElementById("sleepScoreBadge");
+                const resultBox = document.getElementById("sleepDetailResult");
+
+                if (!data) {
+                    badge.innerText = "-- Điểm";
+                    resultBox.innerHTML = '<p style="color:var(--gray); font-size:0.95rem;">Chưa có dữ liệu giấc ngủ hôm nay.</p>';
+                    return;
+                }
+
+                badge.innerText = `${data.sleepScore} / 100 Điểm`;
+                const hours = Math.floor(data.durationMinutes / 60);
+                const mins = data.durationMinutes % 60;
+
+                resultBox.innerHTML = `
+                        <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:1.2rem; font-weight:800; color:var(--dark);">
+                                    ⏱️ Tổng thời gian ngủ: ${hours} giờ ${mins} phút
+                                </div>
+                                <div style="color:var(--gray); margin-top:6px; font-size:0.9rem;">
+                                    Chu kỳ đạt được: <strong>${data.sleepCycles} chu kỳ</strong> • Trạng thái:
+                                    <strong style="color:${data.qualityRating === 'Energetic' ? 'var(--success)' : 'var(--primary)'};">
+                                        ${data.qualityRating === 'Energetic' ? 'Tràn đầy năng lượng ⚡' : data.qualityRating === 'Normal' ? 'Bình thường 🙂' : 'Mệt mỏi 😴'}
+                                    </strong>
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:2.2rem; font-weight:800; color:#7c3aed;">${data.sleepScore}</div>
+                                <small style="color:var(--gray);">Điểm phục hồi</small>
+                            </div>
+                        </div>
+                    `;
+            } catch (err) { console.error(err); }
+        }
+
+        // ================= 4. THỰC ĐƠN RANDOM =================
+        async function handleSpinFood() {
+            const type = document.getElementById("wheelMealType").value;
+            const resCard = document.getElementById("spinResultCard");
+            const nameEl = document.getElementById("spinFoodName");
+            const metaEl = document.getElementById("spinFoodMeta");
+            const tagEl = document.getElementById("spinFoodTag");
+
+            resCard.style.display = "block";
+            nameEl.innerText = "Đang quay món... 🎲";
+            metaEl.innerText = "Đang kết nối kho dữ liệu SQL Server...";
+            tagEl.innerText = "";
+
+            try {
+                const res = await fetch(`/api/lifestyle/random-meal?mealType=${type}`);
+                if (!res.ok) throw new Error();
+                const meal = await res.json();
+                currentSpunMeal = meal;
+
+                setTimeout(() => {
+                    nameEl.innerText = meal.mealName;
+                    metaEl.innerText = `🔥 ${meal.calories} kcal • ${Number(meal.price).toLocaleString()} đ`;
+                    tagEl.innerText = meal.tag || "Món ăn ngon miệng";
+
+                    const btnApply = document.getElementById("btnApplySpinFood");
+                    btnApply.onclick = () => applyMealToToday(meal.mealId, type);
+                }, 400);
+            } catch {
+                nameEl.innerText = "Chưa có món ăn trong kho!";
+            }
+        }
+
+        async function applyMealToToday(mealId, mealType) {
+            try {
+                const res = await fetch("/api/lifestyle/apply-today-meal?userId=1", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ mealId: mealId, mealType: mealType })
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    showNotification(`✅ Đã áp dụng ${result.meal.mealName}! Tổng Calo: ${result.totalCaloriesToday} kcal`);
+                } else {
+                    alert("Lỗi áp dụng món ăn!");
+                }
+            } catch { alert("Lỗi mạng!"); }
+        }
+
+        async function loadMealInventory() {
+            const grid = document.getElementById("mealGridList");
+            const badge = document.getElementById("totalMealsBadge");
+            try {
+                const res = await fetch("/api/lifestyle/meals");
+                const list = await res.json();
+                badge.innerText = `${list.length} món ăn`;
+
+                grid.innerHTML = list.map(m => `
+                        <div class="food-card">
+                            <div>
+                                <div style="font-weight:700; font-size:1.05rem; color:var(--dark); margin-bottom:4px;">${m.mealName}</div>
+                                <div style="font-size:0.85rem; color:var(--gray); margin-bottom:8px;">
+                                    Phù hợp: <strong>${m.mealType === 'Breakfast' ? 'Bữa sáng' : m.mealType === 'Lunch' ? 'Bữa trưa' : 'Bữa tối'}</strong>
+                                </div>
+                                <div style="font-size:0.9rem; color:var(--warning); font-weight:600;">🔥 ${m.calories} kcal • ${Number(m.price).toLocaleString()} đ</div>
+                            </div>
+                            <button class="btn" style="background:var(--primary-light); color:var(--primary); font-size:0.85rem; margin-top:12px;" onclick="applyMealToToday(${m.mealId}, '${m.mealType}')">
+                                Chọn cho hôm nay
+                            </button>
+                        </div>
+                    `).join("");
+            } catch { grid.innerHTML = "<p>Lỗi tải danh sách món ăn!</p>"; }
+        }
+
+        async function handleCreateMeal() {
+            const name = document.getElementById("newMealName").value.trim();
+            const type = document.getElementById("newMealType").value;
+            const calo = parseInt(document.getElementById("newMealCalo").value);
+            const price = parseFloat(document.getElementById("newMealPrice").value) || 0;
+
+            if (!name || isNaN(calo) || calo <= 0) {
+                alert("Vui lòng nhập tên món và lượng calo hợp lệ!");
+                return;
+            }
+
+            const res = await fetch("/api/lifestyle/meals", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mealName: name, mealType: type, calories: calo, price: price, tag: `${calo} kcal` })
+            });
+
+            if (res.ok) {
+                document.getElementById("newMealName").value = "";
+                document.getElementById("newMealCalo").value = "";
+                document.getElementById("newMealPrice").value = "";
+                showNotification("✅ Đã thêm món mới vào Database!");
+                loadMealInventory();
+            }
+        }
+
+        // ================= 5. HOẠT ĐỘNG TẬP LUYỆN =================
+        function startWorkoutTimer() {
+            document.getElementById("btnTimerStart").style.display = "none";
+            document.getElementById("btnTimerStop").style.display = "inline-block";
+            timerSeconds = 0;
+            document.getElementById("stopwatchDisplay").innerText = "00:00";
+
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+                const secs = String(timerSeconds % 60).padStart(2, '0');
+                document.getElementById("stopwatchDisplay").innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        async function stopWorkoutTimer() {
+            clearInterval(timerInterval);
+            document.getElementById("btnTimerStart").style.display = "inline-block";
+            document.getElementById("btnTimerStop").style.display = "none";
+
+            const elapsed = timerSeconds;
+            document.getElementById("stopwatchDisplay").innerText = "00:00";
+
+            if (elapsed <= 0) return;
+
+            const sportType = document.getElementById("timerSportType").value;
+            await saveActivityToBackend(sportType, elapsed);
+        }
+
+        async function handleLogActivityManual() {
+            const type = document.getElementById("inputActType").value;
+            const val = parseInt(document.getElementById("inputActValue").value);
+            const unit = document.getElementById("inputActUnit").value;
+
+            if (!val || val <= 0) return alert("Vui lòng nhập thời gian hợp lệ!");
+
+            const totalSeconds = unit === "minutes" ? val * 60 : val;
+            await saveActivityToBackend(type, totalSeconds);
+            document.getElementById("inputActValue").value = "";
+        }
+
+        async function saveActivityToBackend(type, durationSeconds) {
+            try {
+                const res = await fetch("/api/lifestyle/log-activity?userId=1", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        activityType: type,
+                        durationSeconds: durationSeconds
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    showNotification(`✅ Đã lưu: ${formatDuration(durationSeconds)} (+${data.stepsAdded} bước, ~${data.caloriesBurned} kcal)`);
+                    loadTodayActivities();
+                    loadDashboardData();
+                }
+            } catch {
+                alert("Lỗi kết nối cơ sở dữ liệu!");
+            }
+        }
+
+        async function loadTodayActivities() {
+            const container = document.getElementById("todayActivityList");
+            const badge = document.getElementById("activityCountBadge");
+            if (!container) return;
+
+            try {
+                const res = await fetch("/api/lifestyle/today-activities?userId=1");
+                const list = await res.json();
+                badge.innerText = `${list.length} buổi tập`;
+
+                if (list.length === 0) {
+                    container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Hôm nay bạn chưa có buổi tập nào. Hãy bấm bắt đầu tập để đếm giờ chính xác!</p>';
+                    return;
+                }
+
+                container.innerHTML = list.map(a => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                            <div>
+                                <strong>${a.activityType === 'Running' ? '🏃 Chạy bộ' : a.activityType === 'Walking' ? '🚶 Đi bộ' : a.activityType === 'Cycling' ? '🚴 Đạp xe' : '🏋️ Tập Gym'}</strong>
+                                <span style="color:var(--gray); font-size:0.85rem; margin-left:8px;">
+                                    Thời lượng: <strong>${formatDuration(a.durationSeconds)}</strong>
+                                </span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <span style="font-weight:700; color:var(--primary);">
+                                    +${a.stepsEquivalent.toLocaleString()} bước (~${a.caloriesBurned} kcal)
+                                </span>
+                                <button class="btn" style="background:#fee2e2; color:#ef4444; font-size:0.8rem; padding:4px 8px;" onclick="handleDeleteActivity(${a.activityId})">
+                                    🗑️ Xóa
+                                </button>
+                            </div>
+                        </div>
+                    `).join("");
+            } catch {
+                container.innerHTML = '<p style="color:red;">Lỗi tải dữ liệu hoạt động!</p>';
+            }
+        }
+
+        async function handleDeleteActivity(id) {
+            if (!confirm("Bạn có chắc muốn xóa buổi tập này và trừ lại số bước hôm nay?")) return;
+            try {
+                const res = await fetch(`/api/lifestyle/activities/${id}?userId=1`, { method: "DELETE" });
+                if (res.ok) {
+                    showNotification("🗑️ Đã xóa buổi tập!");
+                    loadTodayActivities();
+                    loadDashboardData();
+                }
+            } catch { alert("Lỗi khi xóa!"); }
+        }
+
+        async function handleResetAllActivities() {
+            if (!confirm("Bạn có chắc muốn reset toàn bộ hoạt động hôm nay về 0 bước?")) return;
+            try {
+                const res = await fetch("/api/lifestyle/reset-today-activities?userId=1", { method: "POST" });
+                if (res.ok) {
+                    showNotification("🔄 Đã reset hoạt động hôm nay về 0!");
+                    loadTodayActivities();
+                    loadDashboardData();
+                }
+            } catch { alert("Lỗi kết nối cơ sở dữ liệu!"); }
+        }
+
+        // ================= 6. LỊCH TRÌNH =================
+        async function loadOverviewTimelines() {
+            const container = document.getElementById("overviewTimelineList");
+            if (!container) return;
+            try {
+                const res = await fetch("/api/lifestyle/timelines?userId=1");
+                const list = await res.json();
+                if (!list || list.length === 0) {
+                    container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Chưa có lịch trình nào.</p>';
+                    return;
+                }
+                container.innerHTML = list.map(item => `
+                        <div class="timeline-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:var(--light-gray); border-radius:8px; margin-bottom:10px; border-left:4px solid ${item.category === 'Meal' ? 'var(--warning)' : item.category === 'Rest' ? 'var(--success)' : 'var(--primary)'};">
+                            <div>
+                                <strong style="font-size:0.85rem; color:var(--dark); margin-right:8px;">${item.timeSlot}</strong>
+                                <span style="font-size:0.9rem; text-decoration:${item.isCompleted ? 'line-through' : 'none'}; color:${item.isCompleted ? 'var(--gray)' : 'var(--dark)'};">${item.title}</span>
+                            </div>
+                            <span class="badge ${item.isCompleted ? '' : 'badge-blue'}" style="background:${item.isCompleted ? '#e1e8ed' : 'var(--primary-light)'}; color:${item.isCompleted ? 'var(--gray)' : 'var(--primary)'};">
+                                ${item.isCompleted ? 'Đã xong ✓' : 'Sắp tới'}
+                            </span>
+                        </div>
+                    `).join("");
+            } catch { container.innerHTML = '<p style="color:red;">Lỗi kết nối CSDL.</p>'; }
+        }
+
+        async function loadManageTimelines() {
+            const container = document.getElementById("manageTimelineList");
+            const countBadge = document.getElementById("timelineCountBadge");
+            try {
+                const res = await fetch("/api/lifestyle/timelines?userId=1");
+                const list = await res.json();
+                countBadge.textContent = `${list.length} công việc`;
+                if (list.length === 0) {
+                    container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Chưa có mốc lịch trình nào.</p>';
+                    return;
+                }
+                container.innerHTML = list.map(item => `
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:var(--card-shadow); border-left:5px solid ${item.category === 'Meal' ? 'var(--warning)' : item.category === 'Rest' ? 'var(--success)' : 'var(--primary)'};">
+                            <div style="flex:1;">
+                                <div style="font-weight:700; color:var(--dark); font-size:0.95rem;">⏰ ${item.timeSlot}</div>
+                                <div style="font-size:0.95rem; text-decoration:${item.isCompleted ? 'line-through' : 'none'}; color:${item.isCompleted ? 'var(--gray)' : 'var(--dark)'};">${item.title}</div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn" style="background:${item.isCompleted ? '#e1e8ed' : 'var(--success)'}; color:${item.isCompleted ? 'var(--gray)' : '#fff'}; font-size:0.8rem;" onclick="handleToggleStatus(${item.timelineId})">${item.isCompleted ? 'Hoàn tác' : 'Xong ✓'}</button>
+                                <button class="btn" style="background:#fee2e2; color:#ef4444; font-size:0.8rem;" onclick="handleDeleteTimeline(${item.timelineId})">🗑️ Xóa</button>
+                            </div>
+                        </div>
+                    `).join("");
+            } catch { container.innerHTML = '<p style="color:red;">Lỗi CSDL.</p>'; }
+        }
+
+        async function handleCreateTimeline() {
+            const timeSlot = document.getElementById("inputTimeSlot").value.trim();
+            const title = document.getElementById("inputTitle").value.trim();
+            const category = document.getElementById("inputCategory").value;
+            if (!timeSlot || !title) return alert("Vui lòng nhập đủ thông tin!");
+
+            const res = await fetch("/api/lifestyle/timelines", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ timeSlot, title, category })
+            });
+            if (res.ok) {
+                document.getElementById("inputTimeSlot").value = "";
+                document.getElementById("inputTitle").value = "";
+                showNotification("✅ Đã lưu vào SQL Server!");
+                loadManageTimelines();
+            }
+        }
+
+        async function handleToggleStatus(id) {
+            await fetch(`/api/lifestyle/timelines/${id}/toggle`, { method: "PATCH" });
+            loadManageTimelines();
+        }
+
+        async function handleDeleteTimeline(id) {
+            if (!confirm("Xác nhận xóa?")) return;
+            await fetch(`/api/lifestyle/timelines/${id}`, { method: "DELETE" });
+            showNotification("🗑️ Đã xóa mốc thời gian!");
+            loadManageTimelines();
+        }
+
+        // Tự động tải lúc ban đầu
+        document.addEventListener("DOMContentLoaded", function () {
+            loadDashboardData();
+            loadTodayMealsOverview();
+            loadOverviewTimelines();
+        });
     </script>
 </body>
 </html>
