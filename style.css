@@ -1,0 +1,171 @@
+:root {
+  --primary-color: #2e7d32;
+  --primary-hover: #1b5e20;
+  --bg-light: #f7faf8;
+  --card-bg: #ffffff;
+  --text-dark: #1e293b;
+  --sidebar-width: 250px;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  margin: 0;
+  display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  background-color: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  padding-left: 12px;
+}
+
+.sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #64748b;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #e8f5e9;
+  color: var(--primary-color);
+}
+
+.sidebar .nav-link.active {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+/* Main Content */
+.main-content {
+  margin-left: var(--sidebar-width);
+  padding: 36px 40px;
+  width: calc(100% - var(--sidebar-width));
+  min-height: 100vh;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Thẻ thống kê & Card chung */
+.card {
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.stat-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+/* Habit List */
+.habit-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  margin-bottom: 10px;
+}
+
+.habit-item.completed label {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+/* Meal Card */
+.meal-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.meal-card img {
+  height: 180px;
+  object-fit: cover;
+}
+
+.badge-meal {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Avatar cá nhân */
+.profile-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background-color: #e8f5e9;
+  color: var(--primary-color);
+  font-size: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Nút chính */
+.btn-brand {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+}
+
+.btn-brand:hover {
+  background-color: var(--primary-hover);
+  color: #ffffff;
+}
