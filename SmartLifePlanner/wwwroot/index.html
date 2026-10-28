@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LifeSmart - Quản lý lối sống & Lịch trình thông minh</title>
     <link rel="stylesheet" href="/css/style.css">
+    <!-- Nạp Chart.js để vẽ biểu đồ Thống kê -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .timeline-container {
             display: flex;
@@ -123,8 +125,16 @@
                         <span>😴</span><span>Giấc ngủ</span>
                     </a>
                 </li>
-                <li><a href="javascript:void(0)" onclick="showNotification('Tính năng đang hoàn thiện!')"><span>📊</span><span>Thống kê</span></a></li>
-                <li><a href="javascript:void(0)" onclick="showNotification('Tính năng đang hoàn thiện!')"><span>👤</span><span>Cá nhân</span></a></li>
+                <li>
+                    <a href="javascript:void(0)" id="tab-nav-statistics" onclick="switchTab('statistics')">
+                        <span>📊</span><span>Thống kê</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="javascript:void(0)" id="tab-nav-profile" onclick="switchTab('profile')">
+                        <span>👤</span><span>Cá nhân</span>
+                    </a>
+                </li>
             </ul>
         </aside>
 
@@ -132,12 +142,15 @@
         <main class="main-content">
             <header class="header">
                 <div>
-                    <h1 id="page-title">Xin chào, Hiếu 👋</h1>
+                    <h1 id="page-title">Xin chào 👋</h1>
                     <p id="page-subtitle">Cùng theo dõi kế hoạch sinh hoạt và duy trì lối sống khoa học hôm nay.</p>
                 </div>
-                <div class="user">
-                    <div><strong>Hiếu</strong><br><small>Thành viên</small></div>
-                    <div class="user-avatar">H</div>
+                <div class="user" style="display:flex; align-items:center; gap:12px;">
+                    <div style="text-align:right;">
+                        <strong id="headerUserName">Dương Thu Hậu</strong><br>
+                        <small id="headerUserRole" style="color:var(--gray);">Thành viên</small>
+                    </div>
+                    <div class="user-avatar" id="headerUserAvatar" style="cursor:pointer;" title="Đăng xuất" onclick="handleLogout()">H</div>
                 </div>
             </header>
 
@@ -147,7 +160,7 @@
                     <div class="card">
                         <div class="card-header"><span class="card-title">Chỉ số BMI</span><div class="card-icon">⚖️</div></div>
                         <div class="card-value" id="dash-bmi">22.8</div>
-                        <div class="card-unit">Bình thường</div>
+                        <div class="card-unit" id="dash-bmi-unit">Bình thường</div>
                     </div>
                     <div class="card">
                         <div class="card-header"><span class="card-title">Calo hôm nay</span><div class="card-icon">🔥</div></div>
@@ -497,19 +510,358 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ================= VIEW 7: THỐNG KÊ (DATA MINING & CHART.JS) ================= -->
+            <div id="view-statistics" style="display: none;">
+                <div class="section" style="margin-bottom: 24px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div>
+                            <h2 style="color: #166534; margin-bottom: 6px;">📈 Khai phá dữ liệu Lối sống (Data Mining Insights)</h2>
+                            <p style="color: #14532d; font-size: 0.95rem;" id="statInsightBox">
+                                Đang trích xuất luật thói quen và phân tích dữ liệu 7 ngày qua...
+                            </p>
+                        </div>
+                        <span class="badge" style="background:#22c55e; color:#fff; font-size:0.85rem; padding:6px 12px;">Apriori & Trend</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                    <!-- Biểu đồ Calo -->
+                    <div class="section">
+                        <div class="section-title">
+                            <h2>🔥 Cân bằng Calo Nạp vs Đốt (7 ngày)</h2>
+                        </div>
+                        <div style="position:relative; height:280px; width:100%;">
+                            <canvas id="caloChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Biểu đồ Nước uống & Vận động -->
+                    <div class="section">
+                        <div class="section-title">
+                            <h2>💧 Nước uống & Vận động (7 ngày)</h2>
+                        </div>
+                        <div style="position:relative; height:280px; width:100%;">
+                            <canvas id="waterStepsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 8: HỒ SƠ CÁ NHÂN (PROFILE & BMR/TDEE) ================= -->
+            <div id="view-profile" style="display: none;">
+                <!-- Banner giải thích khoa học thực tế -->
+                <div class="section" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left:6px solid #16a34a; margin-bottom:24px;">
+                    <h3 style="color:#15803d; margin-bottom:8px; font-size:1.15rem;">💡 Năng lượng tiêu hao tự nhiên (Công thức Mifflin–St Jeor):</h3>
+                    <p id="profileBurnDesc" style="font-size:1.05rem; color:#166534; font-weight:600; line-height:1.6;">
+                        Đang tính toán dữ liệu thể trạng của bạn...
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+                    <!-- Form Cập nhật thể trạng -->
+                    <div class="section">
+                        <div class="section-title">
+                            <h2>⚙️ Chỉnh sửa thông số cơ thể</h2>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:14px; margin-top:14px;">
+                            <div>
+                                <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Họ và tên:</label>
+                                <input type="text" id="profFullName" style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:8px;" />
+                            </div>
+
+                            <div style="display:flex; gap:12px;">
+                                <div style="flex:1;">
+                                    <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Giới tính:</label>
+                                    <select id="profGender" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                                        <option value="Nam">Nam</option>
+                                        <option value="Nữ">Nữ</option>
+                                    </select>
+                                </div>
+                                <div style="flex:1;">
+                                    <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Tuổi:</label>
+                                    <input type="number" id="profAge" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;" />
+                                </div>
+                            </div>
+
+                            <div style="display:flex; gap:12px;">
+                                <div style="flex:1;">
+                                    <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Chiều cao (cm):</label>
+                                    <input type="number" id="profHeight" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;" />
+                                </div>
+                                <div style="flex:1;">
+                                    <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Cân nặng (kg):</label>
+                                    <input type="number" id="profWeight" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Mức độ vận động:</label>
+                                <select id="profActivity" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                                    <option value="Ít vận động">Ít vận động (Chủ yếu ngồi một chỗ)</option>
+                                    <option value="Vận động nhẹ">Vận động nhẹ (Tập 1-3 ngày/tuần)</option>
+                                    <option value="Vận động vừa">Vận động vừa (Tập 3-5 ngày/tuần)</option>
+                                    <option value="Vận động nhiều">Vận động nhiều (Tập 6-7 ngày/tuần)</option>
+                                    <option value="Rất nhiều">Rất nhiều (Vận động viên)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="display:block; font-size:0.85rem; color:var(--gray); margin-bottom:4px;">Mục tiêu lối sống:</label>
+                                <select id="profGoal" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                                    <option value="Duy trì">Duy trì cân nặng</option>
+                                    <option value="Giảm cân">Giảm cân (Thâm hụt calo)</option>
+                                    <option value="Tăng cân">Tăng cân / Tăng cơ</option>
+                                </select>
+                            </div>
+
+                            <button class="btn btn-primary" style="margin-top:8px; padding:12px; font-weight:700;" onclick="saveProfileChanges()">
+                                💾 Lưu thay đổi thể trạng
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Thẻ tóm tắt các chỉ số khoa học -->
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <div class="section" style="text-align:center;">
+                            <div style="font-size:0.9rem; color:var(--gray);">Chỉ số BMI chuẩn hóa</div>
+                            <div id="profBmiVal" style="font-size:2.8rem; font-weight:800; color:var(--primary); margin:6px 0;">--</div>
+                            <span class="badge badge-blue" id="profBmiCat">Đang đánh giá</span>
+                        </div>
+
+                        <div class="section" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; text-align:center;">
+                            <div>
+                                <div style="font-size:0.85rem; color:var(--gray);">Năng lượng nền (BMR)</div>
+                                <div id="profBmrVal" style="font-size:1.6rem; font-weight:700; color:#d97706; margin-top:4px;">-- kcal</div>
+                                <small style="color:var(--gray); font-size:0.75rem;">Đốt khi nằm yên</small>
+                            </div>
+                            <div>
+                                <div style="font-size:0.85rem; color:var(--gray);">Tổng tiêu hao (TDEE)</div>
+                                <div id="profTdeeVal" style="font-size:1.6rem; font-weight:700; color:#ea580c; margin-top:4px;">-- kcal</div>
+                                <small style="color:var(--gray); font-size:0.75rem;">Đã nhân hệ số F</small>
+                            </div>
+                        </div>
+
+                        <div class="section" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; text-align:center;">
+                            <div>
+                                <div style="font-size:0.85rem; color:var(--gray);">Mục tiêu Calo ngày</div>
+                                <div id="profTargetCalo" style="font-size:1.5rem; font-weight:700; color:var(--dark); margin-top:4px;">-- kcal</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.85rem; color:var(--gray);">Mục tiêu Nước ngày</div>
+                                <div id="profTargetWater" style="font-size:1.5rem; font-weight:700; color:#0284c7; margin-top:4px;">-- L</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
-    <!-- TOAST NOTIFICATION -->
+    <!-- ================= MODAL ĐĂNG NHẬP / ĐĂNG KÝ ================= -->
+    <div id="authModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:#fff; border-radius:12px; width:90%; max-width:440px; padding:28px; box-shadow:0 8px 30px rgba(0,0,0,0.2);">
+
+            <!-- FORM LOGIN -->
+            <div id="boxLogin">
+                <h2 style="color:var(--primary); margin-bottom:6px;">🔐 Đăng nhập hệ thống</h2>
+                <p style="color:var(--gray); font-size:0.85rem; margin-bottom:18px;">Nhập tài khoản để nhận JWT Token xác thực bảo mật.</p>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <input type="email" id="loginEmail" placeholder="Email của bạn" style="padding:10px 14px; border:1px solid var(--border); border-radius:8px;" />
+                    <input type="password" id="loginPassword" placeholder="Mật khẩu" style="padding:10px 14px; border:1px solid var(--border); border-radius:8px;" />
+                    <button class="btn btn-primary" style="padding:10px; font-weight:700;" onclick="handleLoginSubmit()">Đăng nhập ngay</button>
+                    <p style="font-size:0.85rem; text-align:center; color:var(--gray); margin-top:8px;">
+                        Chưa có tài khoản? <a href="javascript:void(0)" style="color:var(--primary); font-weight:600;" onclick="toggleAuthBox('register')">Đăng ký ngay</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- FORM REGISTER -->
+            <div id="boxRegister" style="display:none;">
+                <h2 style="color:var(--primary); margin-bottom:4px;">📝 Đăng ký thể trạng</h2>
+                <p style="color:var(--gray); font-size:0.8rem; margin-bottom:14px;">Thiết lập thông số để hệ thống tính chuẩn BMR & Calo cá nhân.</p>
+                <div style="display:flex; flex-direction:column; gap:10px; max-height:480px; overflow-y:auto; padding-right:4px;">
+                    <input type="text" id="regFullName" placeholder="Họ và tên" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px;" />
+                    <input type="email" id="regEmail" placeholder="Email đăng nhập" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px;" />
+                    <input type="password" id="regPassword" placeholder="Mật khẩu" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px;" />
+
+                    <div style="display:flex; gap:8px;">
+                        <select id="regGender" style="flex:1; padding:8px; border:1px solid var(--border); border-radius:6px;">
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                        <input type="number" id="regAge" placeholder="Tuổi (VD: 20)" style="flex:1; padding:8px; border:1px solid var(--border); border-radius:6px;" />
+                    </div>
+
+                    <div style="display:flex; gap:8px;">
+                        <input type="number" id="regHeight" placeholder="Cao (cm, VD: 170)" style="flex:1; padding:8px; border:1px solid var(--border); border-radius:6px;" />
+                        <input type="number" id="regWeight" placeholder="Nặng (kg, VD: 66)" style="flex:1; padding:8px; border:1px solid var(--border); border-radius:6px;" />
+                    </div>
+
+                    <select id="regActivity" style="padding:8px; border:1px solid var(--border); border-radius:6px;">
+                        <option value="Ít vận động">Ít vận động (Chủ yếu ngồi một chỗ)</option>
+                        <option value="Vận động nhẹ">Vận động nhẹ (Tập 1-3 ngày/tuần)</option>
+                        <option value="Vận động vừa" selected>Vận động vừa (Tập 3-5 ngày/tuần)</option>
+                        <option value="Vận động nhiều">Vận động nhiều (Tập 6-7 ngày/tuần)</option>
+                    </select>
+
+                    <select id="regGoal" style="padding:8px; border:1px solid var(--border); border-radius:6px;">
+                        <option value="Duy trì" selected>Duy trì cân nặng</option>
+                        <option value="Giảm cân">Giảm cân (Thâm hụt calo)</option>
+                        <option value="Tăng cân">Tăng cân / Tăng cơ</option>
+                    </select>
+
+                    <button class="btn btn-primary" style="padding:10px; font-weight:700; margin-top:6px;" onclick="handleRegisterSubmit()">Hoàn tất Đăng ký</button>
+                    <p style="font-size:0.85rem; text-align:center; color:var(--gray);">
+                        Đã có tài khoản? <a href="javascript:void(0)" style="color:var(--primary); font-weight:600;" onclick="toggleAuthBox('login')">Quay lại Đăng nhập</a>
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <div class="notification" id="toastBox"></div>
 
-    <!-- JAVASCRIPT TRỰC TIẾP -->
+    <!-- ================= TOÀN BỘ SCRIPT JAVASCRIPT ================= -->
     <script>
         let currentSpunMeal = null;
         let timerInterval = null;
         let timerSeconds = 0;
         let currentWater = 0.0;
         let targetWater = 2.5;
+        let chartCaloInstance = null;
+        let chartWaterInstance = null;
+
+        // ================= JWT TOKEN CLIENT HANDLER =================
+        function getToken() { return localStorage.getItem("jwtToken"); }
+        function setToken(token) { localStorage.setItem("jwtToken", token); }
+        function removeToken() { localStorage.removeItem("jwtToken"); }
+
+        function checkAuthStatus() {
+            const token = getToken();
+            const modal = document.getElementById("authModalOverlay");
+            if (!token) {
+                if (modal) modal.style.display = "flex";
+                toggleAuthBox('login');
+            } else {
+                if (modal) modal.style.display = "none";
+                loadUserProfile();
+            }
+        }
+
+        function toggleAuthBox(mode) {
+            const boxLogin = document.getElementById("boxLogin");
+            const boxReg = document.getElementById("boxRegister");
+            if (boxLogin) boxLogin.style.display = (mode === 'login') ? "block" : "none";
+            if (boxReg) boxReg.style.display = (mode === 'register') ? "block" : "none";
+        }
+
+        async function handleLoginSubmit() {
+            const email = document.getElementById("loginEmail")?.value.trim();
+            const password = document.getElementById("loginPassword")?.value;
+            if (!email || !password) return alert("Vui lòng nhập email và mật khẩu!");
+
+            try {
+                const res = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (res.ok) {
+                    const text = await res.text();
+                    const data = text ? JSON.parse(text) : {};
+                    setToken(data.token);
+                    showNotification("🎉 Đăng nhập thành công! Token JWT đã được cấp.");
+                    const modal = document.getElementById("authModalOverlay");
+                    if (modal) modal.style.display = "none";
+                    loadDashboardData();
+                    loadUserProfile();
+                } else {
+                    const err = await res.json().catch(() => ({ message: "Sai tài khoản hoặc mật khẩu!" }));
+                    alert("Đăng nhập thất bại: " + (err.message || "Sai thông tin!"));
+                }
+            } catch {
+                alert("Lỗi kết nối máy chủ backend!");
+            }
+        }
+
+        async function handleRegisterSubmit() {
+            const fullName = document.getElementById("regFullName")?.value.trim();
+            const email = document.getElementById("regEmail")?.value.trim();
+            const password = document.getElementById("regPassword")?.value;
+            const gender = document.getElementById("regGender")?.value || "Nam";
+            const age = parseInt(document.getElementById("regAge")?.value) || 20;
+            const height = parseFloat(document.getElementById("regHeight")?.value) || 170;
+            const weight = parseFloat(document.getElementById("regWeight")?.value) || 60;
+            const activityLevel = document.getElementById("regActivity")?.value || "Vận động vừa";
+            const goal = document.getElementById("regGoal")?.value || "Duy trì";
+
+            if (!fullName || !email || !password) {
+                return alert("Vui lòng điền đủ họ tên, email và mật khẩu!");
+            }
+
+            try {
+                const res = await fetch("/api/auth/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ fullName, email, password, gender, age, height, weight, activityLevel, goal })
+                });
+
+                if (res.ok) {
+                    alert("🎉 Đăng ký thành công! Hãy đăng nhập bằng tài khoản mới.");
+                    toggleAuthBox('login');
+                } else {
+                    const msg = await res.text();
+                    alert("Lỗi đăng ký: " + msg);
+                }
+            } catch {
+                alert("Lỗi gửi dữ liệu đăng ký!");
+            }
+        }
+
+        async function loadUserProfile() {
+            const token = getToken();
+            if (!token) return;
+
+            try {
+                const res = await fetch("/api/auth/profile", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (res.status === 401) {
+                    removeToken();
+                    checkAuthStatus();
+                    return;
+                }
+
+                if (res.ok) {
+                    const text = await res.text();
+                    if (!text) return;
+                    const profile = JSON.parse(text);
+
+                    const pageTitle = document.getElementById("page-title");
+                    const headerName = document.getElementById("headerUserName");
+                    const headerRole = document.getElementById("headerUserRole");
+                    const headerAvatar = document.getElementById("headerUserAvatar");
+
+                    if (pageTitle) pageTitle.innerText = `Xin chào, ${profile.fullName} 👋`;
+                    if (headerName) headerName.innerText = profile.fullName;
+                    if (headerRole) headerRole.innerText = profile.role || "Thành viên";
+                    if (headerAvatar) headerAvatar.innerText = profile.fullName.charAt(0).toUpperCase();
+                }
+            } catch (err) {
+                console.error("Lỗi tải User Profile:", err);
+            }
+        }
+
+        function handleLogout() {
+            if (!confirm("Bạn có chắc chắn muốn đăng xuất?")) return;
+            removeToken();
+            showNotification("Đã đăng xuất khỏi hệ thống!");
+            checkAuthStatus();
+        }
 
         function showNotification(message) {
             let notification = document.getElementById("toastBox");
@@ -517,7 +869,7 @@
             notification.textContent = message;
             notification.style.opacity = "1";
             clearTimeout(notification.timer);
-            notification.timer = setTimeout(() => { notification.style.opacity = "0"; }, 2500);
+            notification.timer = setTimeout(() => { notification.style.opacity = "0"; }, 2400);
         }
 
         function formatDuration(totalSeconds) {
@@ -530,7 +882,7 @@
 
         // ================= ĐIỀU HƯỚNG TAB =================
         function switchTab(tabName) {
-            const tabs = ['dashboard', 'schedule', 'meals', 'activity', 'water', 'sleep'];
+            const tabs = ['dashboard', 'schedule', 'meals', 'activity', 'water', 'sleep', 'statistics', 'profile'];
             tabs.forEach(t => {
                 const view = document.getElementById(`view-${t}`);
                 const nav = document.getElementById(`tab-nav-${t}`);
@@ -540,34 +892,43 @@
 
             const titleEl = document.getElementById("page-title");
             const subEl = document.getElementById("page-subtitle");
+            const currentName = document.getElementById("headerUserName")?.innerText || "Bạn";
 
             if (tabName === "dashboard") {
-                titleEl.textContent = "Xin chào, Hiếu 👋";
-                subEl.textContent = "Cùng theo dõi kế hoạch sinh hoạt và duy trì lối sống khoa học hôm nay.";
+                if (titleEl) titleEl.textContent = `Xin chào, ${currentName} 👋`;
+                if (subEl) subEl.textContent = "Cùng theo dõi kế hoạch sinh hoạt và duy trì lối sống khoa học hôm nay.";
                 loadDashboardData();
                 loadTodayMealsOverview();
                 loadOverviewTimelines();
             } else if (tabName === "schedule") {
-                titleEl.textContent = "Kế hoạch & Lịch trình 📅";
-                subEl.textContent = "Tự do điều chỉnh, thêm, sửa hoặc xóa các mốc thời gian trong ngày.";
+                if (titleEl) titleEl.textContent = "Kế hoạch & Lịch trình 📅";
+                if (subEl) subEl.textContent = "Tự do điều chỉnh, thêm, sửa hoặc xóa các mốc thời gian trong ngày.";
                 loadManageTimelines();
             } else if (tabName === "meals") {
-                titleEl.textContent = "Thực đơn & Random món ăn 🥗";
-                subEl.textContent = "Quay món ngẫu nhiên, áp dụng vào thực đơn ngày và tính toán Calo tự động.";
+                if (titleEl) titleEl.textContent = "Thực đơn & Random món ăn 🥗";
+                if (subEl) subEl.textContent = "Quay món ngẫu nhiên, áp dụng vào thực đơn ngày và tính toán Calo tự động.";
                 loadMealInventory();
             } else if (tabName === "activity") {
-                titleEl.textContent = "Nhật ký Hoạt động & Vận động 🏃";
-                subEl.textContent = "Theo dõi thời gian tập luyện và quy đổi bước chân chuẩn xác từng giây.";
+                if (titleEl) titleEl.textContent = "Nhật ký Hoạt động & Vận động 🏃";
+                if (subEl) subEl.textContent = "Theo dõi thời gian tập luyện và quy đổi bước chân chuẩn xác từng giây.";
                 loadTodayActivities();
             } else if (tabName === "water") {
-                titleEl.textContent = "Theo dõi Lượng nước Uống 💧";
-                subEl.textContent = "Quản lý lượng nước cá nhân hóa và ghi nhật ký từng ly nước trong ngày.";
+                if (titleEl) titleEl.textContent = "Theo dõi Lượng nước Uống 💧";
+                if (subEl) subEl.textContent = "Quản lý lượng nước cá nhân hóa và ghi nhật ký từng ly nước trong ngày.";
                 loadWaterSummary();
             } else if (tabName === "sleep") {
-                titleEl.textContent = "Giấc ngủ & Điểm hồi phục 😴";
-                subEl.textContent = "Tính toán chu kỳ ngủ 90 phút và chấm điểm chất lượng giấc ngủ.";
+                if (titleEl) titleEl.textContent = "Giấc ngủ & Điểm hồi phục 😴";
+                if (subEl) subEl.textContent = "Tính toán chu kỳ ngủ 90 phút và chấm điểm chất lượng giấc ngủ.";
                 calculateBedtimes();
                 loadSleepToday();
+            } else if (tabName === "statistics") {
+                if (titleEl) titleEl.textContent = "Thống kê & Khai phá dữ liệu 📊";
+                if (subEl) subEl.textContent = "Trực quan hóa cân bằng năng lượng, thói quen và quy luật lối sống.";
+                loadStatistics();
+            } else if (tabName === "profile") {
+                if (titleEl) titleEl.textContent = "Hồ sơ thể trạng & Trao đổi chất 👤";
+                if (subEl) subEl.textContent = "Ước tính năng lượng nền BMR, tổng tiêu hao TDEE và thiết lập số đo.";
+                fetchUserProfileDetails();
             }
         }
 
@@ -576,46 +937,65 @@
             try {
                 const res = await fetch("/api/lifestyle/dashboard-data?userId=1");
                 if (!res.ok) return;
-                const data = await res.json();
 
-                document.getElementById("dash-bmi").innerText = data.bmi;
-                document.getElementById("dash-calo").innerText = data.caloriesConsumed.toLocaleString();
-                document.getElementById("dash-calo-unit").innerText = `/ ${data.targetCalories.toLocaleString()} kcal`;
+                const text = await res.text();
+                if (!text) return;
+                const data = JSON.parse(text);
 
-                const caloPercent = Math.min((data.caloriesConsumed / data.targetCalories) * 100, 100);
-                document.getElementById("dash-calo-progress").style.width = caloPercent + "%";
+                const bmiEl = document.getElementById("dash-bmi");
+                if (bmiEl) bmiEl.innerText = data.bmi || 20;
 
-                currentWater = data.waterConsumed;
-                targetWater = data.targetWater;
-                document.getElementById("dash-water-target").innerText = `/ ${targetWater.toFixed(1)} L`;
-                document.getElementById("dashWaterGoalSpan").innerText = `${targetWater.toFixed(1)} L`;
+                const caloEl = document.getElementById("dash-calo");
+                if (caloEl) caloEl.innerText = (data.caloriesConsumed || 0).toLocaleString();
+
+                const caloUnit = document.getElementById("dash-calo-unit");
+                if (caloUnit) caloUnit.innerText = `/ ${(data.targetCalories || 2000).toLocaleString()} kcal`;
+
+                const caloPercent = Math.min(((data.caloriesConsumed || 0) / (data.targetCalories || 2000)) * 100, 100);
+                const caloProg = document.getElementById("dash-calo-progress");
+                if (caloProg) caloProg.style.width = caloPercent + "%";
+
+                currentWater = data.waterConsumed || 0.0;
+                targetWater = data.targetWater || 2.5;
+
+                const waterTarget = document.getElementById("dash-water-target");
+                if (waterTarget) waterTarget.innerText = `/ ${targetWater.toFixed(1)} L`;
+
+                const waterGoalSpan = document.getElementById("dashWaterGoalSpan");
+                if (waterGoalSpan) waterGoalSpan.innerText = `${targetWater.toFixed(1)} L`;
+
                 updateWaterUI();
 
-                document.getElementById("dash-steps").innerText = data.stepsCount.toLocaleString();
+                const stepsEl = document.getElementById("dash-steps");
+                if (stepsEl) stepsEl.innerText = (data.stepsCount || 0).toLocaleString();
 
-                // Cập nhật thẻ giấc ngủ ở Sảnh
                 const sleepBadge = document.getElementById("dashSleepStatusBadge");
                 const sleepBox = document.getElementById("dashSleepDetailBox");
                 const recText = document.getElementById("dashRecommendationText");
 
                 if (data.latestSleep) {
                     const hours = (data.latestSleep.durationMinutes / 60.0).toFixed(1);
-                    sleepBadge.innerText = `${data.latestSleep.sleepScore} Điểm`;
-                    sleepBox.innerHTML = `
-                            <div style="font-size:1.1rem; font-weight:700; color:var(--dark); margin-bottom:4px;">Đêm qua ngủ ${hours} tiếng</div>
-                            <div style="font-size:0.9rem; color:var(--gray);">Chất lượng: <strong>${data.latestSleep.qualityRating === 'Energetic' ? 'Rất khỏe khoắn ⚡' : data.latestSleep.qualityRating === 'Normal' ? 'Bình thường 🙂' : 'Mệt mỏi 😴'}</strong></div>
-                        `;
-
-                    if (data.latestSleep.durationMinutes < 360) {
-                        recText.innerText = "⚠️ Đêm qua bạn ngủ dưới 6 tiếng. Hãy bổ sung nước thường xuyên và tránh các bài tập nặng nhé!";
-                    } else {
-                        recText.innerText = "✨ Giấc ngủ đêm qua rất tốt! Bạn đã sẵn sàng năng lượng cho ngày làm việc hôm nay.";
+                    if (sleepBadge) sleepBadge.innerText = `${data.latestSleep.sleepScore} Điểm`;
+                    if (sleepBox) {
+                        sleepBox.innerHTML = `
+                                <div style="font-size:1.1rem; font-weight:700; color:var(--dark); margin-bottom:4px;">Đêm qua ngủ ${hours} tiếng</div>
+                                <div style="font-size:0.9rem; color:var(--gray);">Chất lượng: <strong>${data.latestSleep.qualityRating === 'Energetic' ? 'Rất khỏe khoắn ⚡' : data.latestSleep.qualityRating === 'Normal' ? 'Bình thường 🙂' : 'Mệt mỏi 😴'}</strong></div>
+                            `;
+                    }
+                    if (recText) {
+                        if (data.latestSleep.durationMinutes < 360) {
+                            recText.innerText = "⚠️ Đêm qua bạn ngủ dưới 6 tiếng. Hãy bổ sung nước thường xuyên và tránh các bài tập nặng nhé!";
+                        } else {
+                            recText.innerText = "✨ Giấc ngủ đêm qua rất tốt! Bạn đã sẵn sàng năng lượng cho ngày làm việc hôm nay.";
+                        }
                     }
                 } else {
-                    sleepBadge.innerText = "Chưa ghi nhận";
-                    sleepBox.innerHTML = `<p style="color:var(--gray); font-size:0.95rem;">Bạn chưa ghi nhận giấc ngủ đêm qua. Hãy bấm vào để tính chu kỳ và ghi nhận điểm phục hồi!</p>`;
+                    if (sleepBadge) sleepBadge.innerText = "Chưa ghi nhận";
+                    if (sleepBox) sleepBox.innerHTML = `<p style="color:var(--gray); font-size:0.95rem;">Bạn chưa ghi nhận giấc ngủ đêm qua. Hãy bấm vào để tính chu kỳ và ghi nhận điểm phục hồi!</p>`;
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error("Lỗi nạp dashboard:", err);
+            }
         }
 
         function updateWaterUI() {
@@ -642,76 +1022,106 @@
             try {
                 const res = await fetch("/api/lifestyle/today-meals?userId=1");
                 if (!res.ok) return;
-                const data = await res.json();
 
-                if (data.breakfast) {
-                    document.getElementById("overview-meal-breakfast").innerText = `Bữa sáng - ${data.breakfast.mealName}`;
-                    document.getElementById("overview-tag-breakfast").innerText = data.breakfast.tag || "Đã chốt món";
-                    document.getElementById("overview-calo-breakfast").innerText = `${data.breakfast.calories} kcal`;
-                } else {
-                    document.getElementById("overview-meal-breakfast").innerText = "Bữa sáng - Chưa chọn món";
-                    document.getElementById("overview-tag-breakfast").innerText = "Bấm đổi món để chọn";
-                    document.getElementById("overview-calo-breakfast").innerText = "0 kcal";
+                const text = await res.text();
+                if (!text) return;
+                const data = JSON.parse(text);
+
+                const bName = document.getElementById("overview-meal-breakfast");
+                const bTag = document.getElementById("overview-tag-breakfast");
+                const bCal = document.getElementById("overview-calo-breakfast");
+                if (bName && bTag && bCal) {
+                    if (data.breakfast) {
+                        bName.innerText = `Bữa sáng - ${data.breakfast.mealName}`;
+                        bTag.innerText = data.breakfast.tag || "Đã chốt món";
+                        bCal.innerText = `${data.breakfast.calories} kcal`;
+                    } else {
+                        bName.innerText = "Bữa sáng - Chưa chọn món";
+                        bTag.innerText = "Bấm đổi món để chọn";
+                        bCal.innerText = "0 kcal";
+                    }
                 }
 
-                if (data.lunch) {
-                    document.getElementById("overview-meal-lunch").innerText = `Bữa trưa - ${data.lunch.mealName}`;
-                    document.getElementById("overview-tag-lunch").innerText = data.lunch.tag || "Đã chốt món";
-                    document.getElementById("overview-calo-lunch").innerText = `${data.lunch.calories} kcal`;
-                } else {
-                    document.getElementById("overview-meal-lunch").innerText = "Bữa trưa - Chưa chọn món";
-                    document.getElementById("overview-tag-lunch").innerText = "Bấm đổi món để chọn";
-                    document.getElementById("overview-calo-lunch").innerText = "0 kcal";
+                const lName = document.getElementById("overview-meal-lunch");
+                const lTag = document.getElementById("overview-tag-lunch");
+                const lCal = document.getElementById("overview-calo-lunch");
+                if (lName && lTag && lCal) {
+                    if (data.lunch) {
+                        lName.innerText = `Bữa trưa - ${data.lunch.mealName}`;
+                        lTag.innerText = data.lunch.tag || "Đã chốt món";
+                        lCal.innerText = `${data.lunch.calories} kcal`;
+                    } else {
+                        lName.innerText = "Bữa trưa - Chưa chọn món";
+                        lTag.innerText = "Bấm đổi món để chọn";
+                        lCal.innerText = "0 kcal";
+                    }
                 }
 
-                if (data.dinner) {
-                    document.getElementById("overview-meal-dinner").innerText = `Bữa tối - ${data.dinner.mealName}`;
-                    document.getElementById("overview-tag-dinner").innerText = data.dinner.tag || "Đã chốt món";
-                    document.getElementById("overview-calo-dinner").innerText = `${data.dinner.calories} kcal`;
-                } else {
-                    document.getElementById("overview-meal-dinner").innerText = "Bữa tối - Chưa chọn món";
-                    document.getElementById("overview-tag-dinner").innerText = "Bấm đổi món để chọn";
-                    document.getElementById("overview-calo-dinner").innerText = "0 kcal";
+                const dName = document.getElementById("overview-meal-dinner");
+                const dTag = document.getElementById("overview-tag-dinner");
+                const dCal = document.getElementById("overview-calo-dinner");
+                if (dName && dTag && dCal) {
+                    if (data.dinner) {
+                        dName.innerText = `Bữa tối - ${data.dinner.mealName}`;
+                        dTag.innerText = data.dinner.tag || "Đã chốt món";
+                        dCal.innerText = `${data.dinner.calories} kcal`;
+                    } else {
+                        dName.innerText = "Bữa tối - Chưa chọn món";
+                        dTag.innerText = "Bấm đổi món để chọn";
+                        dCal.innerText = "0 kcal";
+                    }
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error("Lỗi nạp thực đơn hôm nay:", err);
+            }
         }
 
-        // ================= 2. QUẢN LÝ NƯỚC UỐNG (WATER TRACKER) =================
+        // ================= 2. QUẢN LÝ NƯỚC UỐNG =================
         async function loadWaterSummary() {
             try {
                 const res = await fetch("/api/lifestyle/water-summary?userId=1");
                 if (!res.ok) return;
-                const data = await res.json();
 
-                targetWater = data.targetWater;
-                currentWater = data.consumedWater;
+                const text = await res.text();
+                if (!text) return;
+                const data = JSON.parse(text);
 
-                document.getElementById("waterTargetLitersDisplay").innerText = `${data.targetWater} L`;
-                document.getElementById("waterFormulaDesc").innerText = `Hôm nay bạn đã vận động ${data.workoutMinutes} phút. Hệ thống tự động điều chỉnh mục tiêu nước lên ${data.targetWater} L.`;
+                targetWater = data.targetWater || 2.5;
+                currentWater = data.consumedWater || 0.0;
+
+                const targetDisp = document.getElementById("waterTargetLitersDisplay");
+                if (targetDisp) targetDisp.innerText = `${data.targetWater} L`;
+
+                const desc = document.getElementById("waterFormulaDesc");
+                if (desc) desc.innerText = `Hôm nay bạn đã vận động ${data.workoutMinutes || 0} phút. Hệ thống tự động điều chỉnh mục tiêu nước lên ${data.targetWater} L.`;
 
                 const badge = document.getElementById("waterLogCountBadge");
                 const listContainer = document.getElementById("waterLogList");
-                badge.innerText = `${data.logs.length} lần`;
+                if (badge) badge.innerText = `${data.logs ? data.logs.length : 0} lần`;
 
-                if (data.logs.length === 0) {
-                    listContainer.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Chưa có lần uống nước nào hôm nay. Hãy uống một ly nước lọc để khởi đầu nhé!</p>';
-                    return;
+                if (listContainer) {
+                    if (!data.logs || data.logs.length === 0) {
+                        listContainer.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Chưa có lần uống nước nào hôm nay. Hãy uống một ly nước lọc để khởi đầu nhé!</p>';
+                        return;
+                    }
+
+                    listContainer.innerHTML = data.logs.map(l => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:8px;">
+                                <div>
+                                    <strong>${l.waterType === 'Water' ? '💧 Nước lọc' : l.waterType === 'Tea' ? '🍵 Trà' : l.waterType === 'Coffee' ? '☕ Cà phê' : l.waterType === 'Milk' ? '🥛 Sữa' : '🍊 Nước ép'}</strong>
+                                    <span style="color:var(--gray); font-size:0.85rem; margin-left:8px;">Lúc ${l.time} • Dung tích: ${l.amountMl}ml</span>
+                                    ${l.calories > 0 ? `<span style="color:var(--warning); font-size:0.8rem; margin-left:6px;">(+${l.calories} kcal)</span>` : ''}
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <span style="font-weight:700; color:#0284c7;">+${l.hydrationAmountMl}ml bù nước</span>
+                                    <button class="btn" style="background:#fee2e2; color:#ef4444; font-size:0.75rem; padding:4px 8px;" onclick="handleDeleteWaterLog(${l.logId})">🗑️</button>
+                                </div>
+                            </div>
+                        `).join("");
                 }
-
-                listContainer.innerHTML = data.logs.map(l => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:8px;">
-                            <div>
-                                <strong>${l.waterType === 'Water' ? '💧 Nước lọc' : l.waterType === 'Tea' ? '🍵 Trà' : l.waterType === 'Coffee' ? '☕ Cà phê' : l.waterType === 'Milk' ? '🥛 Sữa' : '🍊 Nước ép'}</strong>
-                                <span style="color:var(--gray); font-size:0.85rem; margin-left:8px;">Lúc ${l.time} • Dung tích: ${l.amountMl}ml</span>
-                                ${l.calories > 0 ? `<span style="color:var(--warning); font-size:0.8rem; margin-left:6px;">(+${l.calories} kcal)</span>` : ''}
-                            </div>
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="font-weight:700; color:#0284c7;">+${l.hydrationAmountMl}ml bù nước</span>
-                                <button class="btn" style="background:#fee2e2; color:#ef4444; font-size:0.75rem; padding:4px 8px;" onclick="handleDeleteWaterLog(${l.logId})">🗑️</button>
-                            </div>
-                        </div>
-                    `).join("");
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error("Lỗi nạp tổng kết nước:", err);
+            }
         }
 
         async function saveWaterToBackend(amountMl, waterType) {
@@ -723,25 +1133,29 @@
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-                    showNotification(`💧 ${data.message} (+${data.hydrationMl}ml)`);
+                    const text = await res.text();
+                    const data = text ? JSON.parse(text) : {};
+                    showNotification(`💧 ${data.message || 'Đã thêm nước'} (+${data.hydrationMl || amountMl}ml)`);
                     loadWaterSummary();
                     loadDashboardData();
                 }
-            } catch { alert("Lỗi ghi nhận nước!"); }
+            } catch {
+                alert("Lỗi ghi nhận nước!");
+            }
         }
 
         function handleQuickWater(ml) {
-            const type = document.getElementById("waterTypeSelect").value;
+            const type = document.getElementById("waterTypeSelect")?.value || "Water";
             saveWaterToBackend(ml, type);
         }
 
         function handleCustomWater() {
-            const val = parseInt(document.getElementById("customWaterAmount").value);
-            const type = document.getElementById("waterTypeSelect").value;
+            const val = parseInt(document.getElementById("customWaterAmount")?.value);
+            const type = document.getElementById("waterTypeSelect")?.value || "Water";
             if (!val || val <= 0) return alert("Vui lòng nhập số ml hợp lệ!");
             saveWaterToBackend(val, type);
-            document.getElementById("customWaterAmount").value = "";
+            const input = document.getElementById("customWaterAmount");
+            if (input) input.value = "";
         }
 
         async function handleDeleteWaterLog(id) {
@@ -753,21 +1167,23 @@
                     loadWaterSummary();
                     loadDashboardData();
                 }
-            } catch { alert("Lỗi khi xóa!"); }
+            } catch {
+                alert("Lỗi khi xóa!");
+            }
         }
 
-        // ================= 3. GIẤC NGỦ & CHU KỲ (SLEEP TRACKER) =================
+        // ================= 3. GIẤC NGỦ & CHU KỲ =================
         function calculateBedtimes() {
-            const wakeVal = document.getElementById("calcWakeTime").value;
+            const wakeVal = document.getElementById("calcWakeTime")?.value;
             if (!wakeVal) return;
 
             const [hours, minutes] = wakeVal.split(":").map(Number);
             const wakeDate = new Date();
             wakeDate.setHours(hours, minutes, 0, 0);
 
-            // Tính lùi các mốc 6, 5, 4, 3 chu kỳ (mỗi chu kỳ 90 phút + 15 phút thời gian chợp mắt)
             const cycles = [6, 5, 4, 3];
             const container = document.getElementById("suggestedBedtimesContainer");
+            if (!container) return;
 
             container.innerHTML = cycles.map(c => {
                 const totalMinutesBack = (c * 90) + 15;
@@ -786,9 +1202,9 @@
         }
 
         async function handleSaveSleepLog() {
-            const bedVal = document.getElementById("inputSleepBed").value;
-            const wakeVal = document.getElementById("inputSleepWake").value;
-            const rating = document.getElementById("inputSleepRating").value;
+            const bedVal = document.getElementById("inputSleepBed")?.value;
+            const wakeVal = document.getElementById("inputSleepWake")?.value;
+            const rating = document.getElementById("inputSleepRating")?.value || "Normal";
 
             if (!bedVal || !wakeVal) return alert("Vui lòng nhập đủ giờ ngủ và thức dậy!");
 
@@ -800,76 +1216,88 @@
                 const res = await fetch("/api/lifestyle/sleep-logs?userId=1", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        bedTime: bedTime,
-                        wakeTime: wakeTime,
-                        qualityRating: rating
-                    })
+                    body: JSON.stringify({ bedTime, wakeTime, qualityRating: rating })
                 });
 
                 if (res.ok) {
-                    const result = await res.json();
-                    showNotification(`🌙 ${result.message} (${result.durationHours}h - Điểm: ${result.sleepScore})`);
+                    const text = await res.text();
+                    const result = text ? JSON.parse(text) : {};
+                    showNotification(`🌙 ${result.message || 'Đã lưu giấc ngủ'} (${result.durationHours || 0}h - Điểm: ${result.sleepScore || 0})`);
                     loadSleepToday();
                     loadDashboardData();
                 } else {
                     const err = await res.text();
                     alert("Lỗi: " + err);
                 }
-            } catch { alert("Lỗi lưu giấc ngủ!"); }
+            } catch {
+                alert("Lỗi lưu giấc ngủ!");
+            }
         }
 
+        // ĐÃ KHẮC PHỤC CHỐNG LỖI KẸT JSON KHI CHƯA CÓ DỮ LIỆU
         async function loadSleepToday() {
             try {
                 const res = await fetch("/api/lifestyle/sleep-today?userId=1");
-                const data = await res.json();
                 const badge = document.getElementById("sleepScoreBadge");
                 const resultBox = document.getElementById("sleepDetailResult");
 
-                if (!data) {
-                    badge.innerText = "-- Điểm";
-                    resultBox.innerHTML = '<p style="color:var(--gray); font-size:0.95rem;">Chưa có dữ liệu giấc ngủ hôm nay.</p>';
+                if (!res.ok) {
+                    if (badge) badge.innerText = "-- Điểm";
+                    if (resultBox) resultBox.innerHTML = '<p style="color:var(--gray); font-size:0.95rem;">Chưa có dữ liệu giấc ngủ hôm nay.</p>';
                     return;
                 }
 
-                badge.innerText = `${data.sleepScore} / 100 Điểm`;
+                const text = await res.text();
+                if (!text || text.trim() === "" || text === "null") {
+                    if (badge) badge.innerText = "-- Điểm";
+                    if (resultBox) resultBox.innerHTML = '<p style="color:var(--gray); font-size:0.95rem;">Chưa có dữ liệu giấc ngủ hôm nay.</p>';
+                    return;
+                }
+
+                const data = JSON.parse(text);
+
+                if (badge) badge.innerText = `${data.sleepScore} / 100 Điểm`;
                 const hours = Math.floor(data.durationMinutes / 60);
                 const mins = data.durationMinutes % 60;
 
-                resultBox.innerHTML = `
-                        <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <div style="font-size:1.2rem; font-weight:800; color:var(--dark);">
-                                    ⏱️ Tổng thời gian ngủ: ${hours} giờ ${mins} phút
+                if (resultBox) {
+                    resultBox.innerHTML = `
+                            <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <div style="font-size:1.2rem; font-weight:800; color:var(--dark);">
+                                        ⏱️ Tổng thời gian ngủ: ${hours} giờ ${mins} phút
+                                    </div>
+                                    <div style="color:var(--gray); margin-top:6px; font-size:0.9rem;">
+                                        Chu kỳ đạt được: <strong>${data.sleepCycles} chu kỳ</strong> • Trạng thái:
+                                        <strong style="color:${data.qualityRating === 'Energetic' ? 'var(--success)' : 'var(--primary)'};">
+                                            ${data.qualityRating === 'Energetic' ? 'Tràn đầy năng lượng ⚡' : data.qualityRating === 'Normal' ? 'Bình thường 🙂' : 'Mệt mỏi 😴'}
+                                        </strong>
+                                    </div>
                                 </div>
-                                <div style="color:var(--gray); margin-top:6px; font-size:0.9rem;">
-                                    Chu kỳ đạt được: <strong>${data.sleepCycles} chu kỳ</strong> • Trạng thái:
-                                    <strong style="color:${data.qualityRating === 'Energetic' ? 'var(--success)' : 'var(--primary)'};">
-                                        ${data.qualityRating === 'Energetic' ? 'Tràn đầy năng lượng ⚡' : data.qualityRating === 'Normal' ? 'Bình thường 🙂' : 'Mệt mỏi 😴'}
-                                    </strong>
+                                <div style="text-align:right;">
+                                    <div style="font-size:2.2rem; font-weight:800; color:#7c3aed;">${data.sleepScore}</div>
+                                    <small style="color:var(--gray);">Điểm phục hồi</small>
                                 </div>
                             </div>
-                            <div style="text-align:right;">
-                                <div style="font-size:2.2rem; font-weight:800; color:#7c3aed;">${data.sleepScore}</div>
-                                <small style="color:var(--gray);">Điểm phục hồi</small>
-                            </div>
-                        </div>
-                    `;
-            } catch (err) { console.error(err); }
+                        `;
+                }
+            } catch (err) {
+                console.error("Lỗi nạp Sleep:", err);
+            }
         }
 
         // ================= 4. THỰC ĐƠN RANDOM =================
         async function handleSpinFood() {
-            const type = document.getElementById("wheelMealType").value;
+            const type = document.getElementById("wheelMealType")?.value || "Lunch";
             const resCard = document.getElementById("spinResultCard");
             const nameEl = document.getElementById("spinFoodName");
             const metaEl = document.getElementById("spinFoodMeta");
             const tagEl = document.getElementById("spinFoodTag");
 
-            resCard.style.display = "block";
-            nameEl.innerText = "Đang quay món... 🎲";
-            metaEl.innerText = "Đang kết nối kho dữ liệu SQL Server...";
-            tagEl.innerText = "";
+            if (resCard) resCard.style.display = "block";
+            if (nameEl) nameEl.innerText = "Đang quay món... 🎲";
+            if (metaEl) metaEl.innerText = "Đang kết nối kho dữ liệu SQL Server...";
+            if (tagEl) tagEl.innerText = "";
 
             try {
                 const res = await fetch(`/api/lifestyle/random-meal?mealType=${type}`);
@@ -878,15 +1306,15 @@
                 currentSpunMeal = meal;
 
                 setTimeout(() => {
-                    nameEl.innerText = meal.mealName;
-                    metaEl.innerText = `🔥 ${meal.calories} kcal • ${Number(meal.price).toLocaleString()} đ`;
-                    tagEl.innerText = meal.tag || "Món ăn ngon miệng";
+                    if (nameEl) nameEl.innerText = meal.mealName;
+                    if (metaEl) metaEl.innerText = `🔥 ${meal.calories} kcal • ${Number(meal.price).toLocaleString()} đ`;
+                    if (tagEl) tagEl.innerText = meal.tag || "Món ăn ngon miệng";
 
                     const btnApply = document.getElementById("btnApplySpinFood");
-                    btnApply.onclick = () => applyMealToToday(meal.mealId, type);
+                    if (btnApply) btnApply.onclick = () => applyMealToToday(meal.mealId, type);
                 }, 400);
             } catch {
-                nameEl.innerText = "Chưa có món ăn trong kho!";
+                if (nameEl) nameEl.innerText = "Chưa có món ăn trong kho!";
             }
         }
 
@@ -899,21 +1327,29 @@
                 });
 
                 if (res.ok) {
-                    const result = await res.json();
-                    showNotification(`✅ Đã áp dụng ${result.meal.mealName}! Tổng Calo: ${result.totalCaloriesToday} kcal`);
+                    const text = await res.text();
+                    const result = text ? JSON.parse(text) : {};
+                    showNotification(`✅ Đã áp dụng ${result.meal ? result.meal.mealName : 'món ăn'}!`);
+                    loadDashboardData();
+                    loadTodayMealsOverview();
                 } else {
                     alert("Lỗi áp dụng món ăn!");
                 }
-            } catch { alert("Lỗi mạng!"); }
+            } catch {
+                alert("Lỗi mạng!");
+            }
         }
 
         async function loadMealInventory() {
             const grid = document.getElementById("mealGridList");
             const badge = document.getElementById("totalMealsBadge");
+            if (!grid) return;
+
             try {
                 const res = await fetch("/api/lifestyle/meals");
-                const list = await res.json();
-                badge.innerText = `${list.length} món ăn`;
+                const text = await res.text();
+                const list = text ? JSON.parse(text) : [];
+                if (badge) badge.innerText = `${list.length} món ăn`;
 
                 grid.innerHTML = list.map(m => `
                         <div class="food-card">
@@ -929,14 +1365,16 @@
                             </button>
                         </div>
                     `).join("");
-            } catch { grid.innerHTML = "<p>Lỗi tải danh sách món ăn!</p>"; }
+            } catch {
+                grid.innerHTML = "<p>Lỗi tải danh sách món ăn!</p>";
+            }
         }
 
         async function handleCreateMeal() {
-            const name = document.getElementById("newMealName").value.trim();
-            const type = document.getElementById("newMealType").value;
-            const calo = parseInt(document.getElementById("newMealCalo").value);
-            const price = parseFloat(document.getElementById("newMealPrice").value) || 0;
+            const name = document.getElementById("newMealName")?.value.trim();
+            const type = document.getElementById("newMealType")?.value || "Lunch";
+            const calo = parseInt(document.getElementById("newMealCalo")?.value);
+            const price = parseFloat(document.getElementById("newMealPrice")?.value) || 0;
 
             if (!name || isNaN(calo) || calo <= 0) {
                 alert("Vui lòng nhập tên món và lượng calo hợp lệ!");
@@ -960,43 +1398,50 @@
 
         // ================= 5. HOẠT ĐỘNG TẬP LUYỆN =================
         function startWorkoutTimer() {
-            document.getElementById("btnTimerStart").style.display = "none";
-            document.getElementById("btnTimerStop").style.display = "inline-block";
+            const btnStart = document.getElementById("btnTimerStart");
+            const btnStop = document.getElementById("btnTimerStop");
+            if (btnStart) btnStart.style.display = "none";
+            if (btnStop) btnStop.style.display = "inline-block";
+
             timerSeconds = 0;
-            document.getElementById("stopwatchDisplay").innerText = "00:00";
+            const display = document.getElementById("stopwatchDisplay");
+            if (display) display.innerText = "00:00";
 
             timerInterval = setInterval(() => {
                 timerSeconds++;
                 const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
                 const secs = String(timerSeconds % 60).padStart(2, '0');
-                document.getElementById("stopwatchDisplay").innerText = `${mins}:${secs}`;
+                if (display) display.innerText = `${mins}:${secs}`;
             }, 1000);
         }
 
         async function stopWorkoutTimer() {
             clearInterval(timerInterval);
-            document.getElementById("btnTimerStart").style.display = "inline-block";
-            document.getElementById("btnTimerStop").style.display = "none";
+            const btnStart = document.getElementById("btnTimerStart");
+            const btnStop = document.getElementById("btnTimerStop");
+            if (btnStart) btnStart.style.display = "inline-block";
+            if (btnStop) btnStop.style.display = "none";
 
             const elapsed = timerSeconds;
-            document.getElementById("stopwatchDisplay").innerText = "00:00";
+            const display = document.getElementById("stopwatchDisplay");
+            if (display) display.innerText = "00:00";
 
             if (elapsed <= 0) return;
-
-            const sportType = document.getElementById("timerSportType").value;
+            const sportType = document.getElementById("timerSportType")?.value || "Walking";
             await saveActivityToBackend(sportType, elapsed);
         }
 
         async function handleLogActivityManual() {
-            const type = document.getElementById("inputActType").value;
-            const val = parseInt(document.getElementById("inputActValue").value);
-            const unit = document.getElementById("inputActUnit").value;
+            const type = document.getElementById("inputActType")?.value || "Walking";
+            const val = parseInt(document.getElementById("inputActValue")?.value);
+            const unit = document.getElementById("inputActUnit")?.value || "minutes";
 
             if (!val || val <= 0) return alert("Vui lòng nhập thời gian hợp lệ!");
 
             const totalSeconds = unit === "minutes" ? val * 60 : val;
             await saveActivityToBackend(type, totalSeconds);
-            document.getElementById("inputActValue").value = "";
+            const input = document.getElementById("inputActValue");
+            if (input) input.value = "";
         }
 
         async function saveActivityToBackend(type, durationSeconds) {
@@ -1004,15 +1449,13 @@
                 const res = await fetch("/api/lifestyle/log-activity?userId=1", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        activityType: type,
-                        durationSeconds: durationSeconds
-                    })
+                    body: JSON.stringify({ activityType: type, durationSeconds: durationSeconds })
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-                    showNotification(`✅ Đã lưu: ${formatDuration(durationSeconds)} (+${data.stepsAdded} bước, ~${data.caloriesBurned} kcal)`);
+                    const text = await res.text();
+                    const data = text ? JSON.parse(text) : {};
+                    showNotification(`✅ Đã lưu: ${formatDuration(durationSeconds)} (+${data.stepsAdded || 0} bước, ~${data.caloriesBurned || 0} kcal)`);
                     loadTodayActivities();
                     loadDashboardData();
                 }
@@ -1028,8 +1471,9 @@
 
             try {
                 const res = await fetch("/api/lifestyle/today-activities?userId=1");
-                const list = await res.json();
-                badge.innerText = `${list.length} buổi tập`;
+                const text = await res.text();
+                const list = text ? JSON.parse(text) : [];
+                if (badge) badge.innerText = `${list.length} buổi tập`;
 
                 if (list.length === 0) {
                     container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Hôm nay bạn chưa có buổi tập nào. Hãy bấm bắt đầu tập để đếm giờ chính xác!</p>';
@@ -1046,7 +1490,7 @@
                             </div>
                             <div style="display:flex; align-items:center; gap:12px;">
                                 <span style="font-weight:700; color:var(--primary);">
-                                    +${a.stepsEquivalent.toLocaleString()} bước (~${a.caloriesBurned} kcal)
+                                    +${(a.stepsEquivalent || 0).toLocaleString()} bước (~${a.caloriesBurned || 0} kcal)
                                 </span>
                                 <button class="btn" style="background:#fee2e2; color:#ef4444; font-size:0.8rem; padding:4px 8px;" onclick="handleDeleteActivity(${a.activityId})">
                                     🗑️ Xóa
@@ -1068,7 +1512,9 @@
                     loadTodayActivities();
                     loadDashboardData();
                 }
-            } catch { alert("Lỗi khi xóa!"); }
+            } catch {
+                alert("Lỗi khi xóa!");
+            }
         }
 
         async function handleResetAllActivities() {
@@ -1080,7 +1526,9 @@
                     loadTodayActivities();
                     loadDashboardData();
                 }
-            } catch { alert("Lỗi kết nối cơ sở dữ liệu!"); }
+            } catch {
+                alert("Lỗi kết nối cơ sở dữ liệu!");
+            }
         }
 
         // ================= 6. LỊCH TRÌNH =================
@@ -1089,7 +1537,8 @@
             if (!container) return;
             try {
                 const res = await fetch("/api/lifestyle/timelines?userId=1");
-                const list = await res.json();
+                const text = await res.text();
+                const list = text ? JSON.parse(text) : [];
                 if (!list || list.length === 0) {
                     container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Chưa có lịch trình nào.</p>';
                     return;
@@ -1105,17 +1554,22 @@
                             </span>
                         </div>
                     `).join("");
-            } catch { container.innerHTML = '<p style="color:red;">Lỗi kết nối CSDL.</p>'; }
+            } catch {
+                container.innerHTML = '<p style="color:red;">Lỗi kết nối CSDL.</p>';
+            }
         }
 
         async function loadManageTimelines() {
             const container = document.getElementById("manageTimelineList");
             const countBadge = document.getElementById("timelineCountBadge");
+            if (!container) return;
             try {
                 const res = await fetch("/api/lifestyle/timelines?userId=1");
-                const list = await res.json();
-                countBadge.textContent = `${list.length} công việc`;
-                if (list.length === 0) {
+                const text = await res.text();
+                const list = text ? JSON.parse(text) : [];
+                if (countBadge) countBadge.textContent = `${list.length} công việc`;
+
+                if (!list || list.length === 0) {
                     container.innerHTML = '<p style="color:var(--gray); font-size:0.9rem;">Chưa có mốc lịch trình nào.</p>';
                     return;
                 }
@@ -1131,16 +1585,18 @@
                             </div>
                         </div>
                     `).join("");
-            } catch { container.innerHTML = '<p style="color:red;">Lỗi CSDL.</p>'; }
+            } catch {
+                container.innerHTML = '<p style="color:red;">Lỗi CSDL.</p>';
+            }
         }
 
         async function handleCreateTimeline() {
-            const timeSlot = document.getElementById("inputTimeSlot").value.trim();
-            const title = document.getElementById("inputTitle").value.trim();
-            const category = document.getElementById("inputCategory").value;
+            const timeSlot = document.getElementById("inputTimeSlot")?.value.trim();
+            const title = document.getElementById("inputTitle")?.value.trim();
+            const category = document.getElementById("inputCategory")?.value || "Task";
             if (!timeSlot || !title) return alert("Vui lòng nhập đủ thông tin!");
 
-            const res = await fetch("/api/lifestyle/timelines", {
+            const res = await fetch("/api/lifestyle/timelines?userId=1", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ timeSlot, title, category })
@@ -1165,8 +1621,210 @@
             loadManageTimelines();
         }
 
-        // Tự động tải lúc ban đầu
+        // ================= 7. THỐNG KÊ (DATA MINING & CHART.JS) =================
+        async function loadStatistics() {
+            try {
+                const res = await fetch('/api/lifestyle/statistics?userId=1&days=7');
+                if (!res.ok) return;
+
+                const text = await res.text();
+                if (!text || text.trim() === "") return;
+                const data = JSON.parse(text);
+
+                const insightBox = document.getElementById('statInsightBox');
+                if (insightBox) insightBox.innerText = '💡 ' + (data.insight || "Đang phân tích thói quen.");
+
+                // 1. Biểu đồ Calo Nạp vs Đốt
+                const chartCaloEl = document.getElementById('caloChart');
+                if (chartCaloEl && typeof Chart !== 'undefined') {
+                    const ctxCalo = chartCaloEl.getContext('2d');
+                    if (chartCaloInstance) chartCaloInstance.destroy();
+
+                    chartCaloInstance = new Chart(ctxCalo, {
+                        type: 'bar',
+                        data: {
+                            labels: data.labels || [],
+                            datasets: [
+                                {
+                                    label: 'Calo nạp (kcal)',
+                                    data: data.caloriesIn || [],
+                                    backgroundColor: '#f59e0b',
+                                    borderRadius: 6
+                                },
+                                {
+                                    label: 'Calo đốt từ vận động (kcal)',
+                                    data: data.caloriesBurned || [],
+                                    backgroundColor: '#ef4444',
+                                    borderRadius: 6
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+
+                // 2. Biểu đồ Nước uống & Bước chân
+                const chartWaterEl = document.getElementById('waterStepsChart');
+                if (chartWaterEl && typeof Chart !== 'undefined') {
+                    const ctxWater = chartWaterEl.getContext('2d');
+                    if (chartWaterInstance) chartWaterInstance.destroy();
+
+                    chartWaterInstance = new Chart(ctxWater, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels || [],
+                            datasets: [{
+                                label: 'Nước uống (Lít)',
+                                data: data.water || [],
+                                borderColor: '#0284c7',
+                                backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                                fill: true,
+                                tension: 0.35,
+                                borderWidth: 3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Lỗi vẽ biểu đồ Thống kê:", e);
+            }
+        }
+
+        // ================= 8. HỒ SƠ THỂ TRẠNG CÁ NHÂN =================
+        async function fetchUserProfileDetails() {
+            try {
+                let profile = null;
+                const token = getToken();
+
+                if (token) {
+                    const res = await fetch('/api/auth/profile', {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const text = await res.text();
+                        if (text) profile = JSON.parse(text);
+                    }
+                }
+
+                if (!profile) {
+                    const dRes = await fetch('/api/lifestyle/dashboard-data?userId=1');
+                    let dData = {};
+                    if (dRes.ok) {
+                        const dText = await dRes.text();
+                        if (dText) dData = JSON.parse(dText);
+                    }
+
+                    const w = 60; const h = 173; const a = 20;
+                    const bmrCalc = Math.round(10 * w + 6.25 * h - 5 * a + 5);
+                    const tdeeCalc = Math.round(bmrCalc * 1.55);
+
+                    profile = {
+                        fullName: dData.fullName || "Dương Thu Hậu",
+                        gender: "Nam",
+                        age: a,
+                        height: h,
+                        weight: w,
+                        activityLevel: "Vận động vừa",
+                        goal: "Duy trì",
+                        bmi: dData.bmi || 20.0,
+                        bmiCategory: "Bình thường",
+                        bmr: bmrCalc,
+                        tdee: tdeeCalc,
+                        targetCalories: dData.targetCalories || 2150,
+                        targetWater: dData.targetWater || 2.3,
+                        naturalBurnDesc: `Nam ${a} tuổi, cao ${h}cm, nặng ${w}kg thì dù nằm ngủ cả ngày vẫn đốt tự nhiên khoảng ${bmrCalc} kcal`
+                    };
+                }
+
+                const fName = document.getElementById('profFullName');
+                const fGen = document.getElementById('profGender');
+                const fAge = document.getElementById('profAge');
+                const fHeight = document.getElementById('profHeight');
+                const fWeight = document.getElementById('profWeight');
+                const fAct = document.getElementById('profActivity');
+                const fGoal = document.getElementById('profGoal');
+
+                if (fName) fName.value = profile.fullName;
+                if (fGen) fGen.value = profile.gender || 'Nam';
+                if (fAge) fAge.value = profile.age || 20;
+                if (fHeight) fHeight.value = profile.height;
+                if (fWeight) fWeight.value = profile.weight;
+                if (fAct) fAct.value = profile.activityLevel || 'Vận động vừa';
+                if (fGoal) fGoal.value = profile.goal || 'Duy trì';
+
+                const desc = document.getElementById('profileBurnDesc');
+                const bmiVal = document.getElementById('profBmiVal');
+                const bmiCat = document.getElementById('profBmiCat');
+                const bmrVal = document.getElementById('profBmrVal');
+                const tdeeVal = document.getElementById('profTdeeVal');
+                const targetCal = document.getElementById('profTargetCalo');
+                const targetWat = document.getElementById('profTargetWater');
+
+                if (desc) desc.innerText = profile.naturalBurnDesc;
+                if (bmiVal) bmiVal.innerText = profile.bmi;
+                if (bmiCat) bmiCat.innerText = profile.bmiCategory || "Bình thường";
+                if (bmrVal) bmrVal.innerText = profile.bmr + ' kcal';
+                if (tdeeVal) tdeeVal.innerText = profile.tdee + ' kcal';
+                if (targetCal) targetCal.innerText = profile.targetCalories + ' kcal';
+                if (targetWat) targetWat.innerText = profile.targetWater + ' L';
+            } catch (err) {
+                console.error("Lỗi tải thông tin cá nhân:", err);
+            }
+        }
+
+        async function saveProfileChanges() {
+            const fullName = document.getElementById('profFullName')?.value.trim();
+            const gender = document.getElementById('profGender')?.value || "Nam";
+            const age = parseInt(document.getElementById('profAge')?.value) || 20;
+            const height = parseFloat(document.getElementById('profHeight')?.value) || 170;
+            const weight = parseFloat(document.getElementById('profWeight')?.value) || 60;
+            const activityLevel = document.getElementById('profActivity')?.value || "Vận động vừa";
+            const goal = document.getElementById('profGoal')?.value || "Duy trì";
+
+            if (!fullName) return alert("Vui lòng nhập họ và tên!");
+
+            const payload = {
+                userId: 1,
+                fullName,
+                gender,
+                age,
+                height,
+                weight,
+                activityLevel,
+                goal
+            };
+
+            try {
+                const res = await fetch('/api/lifestyle/update-profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    showNotification('🎉 Cập nhật hồ sơ thể trạng thành công!');
+                    fetchUserProfileDetails();
+                    loadDashboardData();
+                } else {
+                    alert('Không thể cập nhật hồ sơ!');
+                }
+            } catch {
+                alert('Lỗi kết nối máy chủ!');
+            }
+        }
+
+        // ================= KHỞI TẠO HỆ THỐNG KHI TẢI TRANG =================
         document.addEventListener("DOMContentLoaded", function () {
+            checkAuthStatus();
             loadDashboardData();
             loadTodayMealsOverview();
             loadOverviewTimelines();

@@ -45,6 +45,19 @@ namespace SmartLifePlanner.Controllers
         public string QualityRating { get; set; } = "Normal"; // Tired, Normal, Energetic
     }
 
+    // ĐÃ BỔ SUNG DTO CÒN THIẾU
+    public class UpdateProfileDto
+    {
+        public int UserId { get; set; } = 1;
+        public string FullName { get; set; } = string.Empty;
+        public string Gender { get; set; } = "Nam";
+        public int Age { get; set; } = 20;
+        public double Height { get; set; }
+        public double Weight { get; set; }
+        public string ActivityLevel { get; set; } = "Vận động vừa";
+        public string Goal { get; set; } = "Duy trì";
+    }
+
     [ApiController]
     [Route("api/[controller]")]
     public class LifestyleController : ControllerBase
@@ -146,7 +159,6 @@ namespace SmartLifePlanner.Controllers
             // Hệ số bù nước & Calo tương ứng
             double factor = dto.WaterType switch
             {
-                "Water" => 1.0,
                 "Tea" => 0.85,
                 "Coffee" => 0.80,
                 "Milk" => 0.90,
@@ -261,7 +273,6 @@ namespace SmartLifePlanner.Controllers
         {
             if (dto.WakeTime <= dto.BedTime)
             {
-                // Nếu thức dậy qua ngày hôm sau
                 if (dto.WakeTime.TimeOfDay <= dto.BedTime.TimeOfDay)
                 {
                     dto.WakeTime = dto.WakeTime.AddDays(1);
@@ -275,17 +286,14 @@ namespace SmartLifePlanner.Controllers
             int durationMinutes = (int)(dto.WakeTime - dto.BedTime).TotalMinutes;
             if (durationMinutes <= 0) return BadRequest("Thời gian ngủ không hợp lệ.");
 
-            // Tính chu kỳ ngủ (1 chu kỳ = 90 phút)
             int cycles = durationMinutes / 90;
 
-            // Tính điểm số chất lượng giấc ngủ (Thang 100)
-            // Thời lượng lý tưởng: 420 - 540 phút (7 - 9 tiếng)
             int durationScore = 0;
             if (durationMinutes >= 420 && durationMinutes <= 540) durationScore = 50;
             else if (durationMinutes >= 360) durationScore = 40;
             else durationScore = Math.Max(15, (int)(durationMinutes / 10.0));
 
-            int cycleScore = Math.Min(30, cycles * 6); // Đạt 5 chu kỳ là 30 điểm
+            int cycleScore = Math.Min(30, cycles * 6);
             int moodScore = dto.QualityRating switch
             {
                 "Energetic" => 20,
@@ -604,14 +612,14 @@ namespace SmartLifePlanner.Controllers
         }
 
         [HttpPost("timelines")]
-        public async Task<IActionResult> AddTimeline([FromBody] TimelineCreateDto dto)
+        public async Task<IActionResult> AddTimeline([FromBody] TimelineCreateDto dto, [FromQuery] int userId = 1)
         {
             if (dto == null || string.IsNullOrWhiteSpace(dto.TimeSlot) || string.IsNullOrWhiteSpace(dto.Title))
                 return BadRequest("Vui lòng nhập đầy đủ khung giờ và nội dung.");
 
             var item = new Timeline
             {
-                UserId = 1,
+                UserId = userId,
                 TimeSlot = dto.TimeSlot.Trim(),
                 Title = dto.Title.Trim(),
                 Category = string.IsNullOrWhiteSpace(dto.Category) ? "Task" : dto.Category,
@@ -653,6 +661,123 @@ namespace SmartLifePlanner.Controllers
             _context.Timelines.Remove(item);
             await _context.SaveChangesAsync();
             return Ok(new { message = "Đã xóa thành công." });
+        }
+
+        // ==========================================
+        // 9. API THỐNG KÊ (DATA MINING & VISUALIZATION 7 NGÀY QUA)
+        // ==========================================
+        [HttpGet("statistics")]
+        public async Task<IActionResult> GetStatistics([FromQuery] int userId = 1, [FromQuery] int days = 7)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound("Người dùng không tồn tại.");
+
+            var startDate = DateTime.Today.AddDays(-days + 1);
+
+            // 1. Dữ liệu calo nạp, nước uống, bước chân từ DailyTrackings
+            var trackings = await _context.DailyTrackings
+                .Where(t => t.UserId == userId && t.TrackingDate >= startDate)
+                .OrderBy(t => t.TrackingDate)
+                .ToListAsync();
+
+            // 2. Dữ liệu vận động calo đốt từ Activities
+            var activities = await _context.Activities
+                .Where(a => a.UserId == userId && a.LogDate >= startDate)
+                .ToListAsync();
+
+            // 3. Dữ liệu giấc ngủ từ SleepLogs
+            var sleepLogs = await _context.SleepLogs
+                .Where(s => s.UserId == userId && s.SleepDate >= startDate)
+                .ToListAsync();
+
+            var dateLabels = new List<string>();
+            var caloriesIn = new List<int>();
+            var caloriesBurned = new List<double>();
+            var waterList = new List<double>();
+            var stepsList = new List<int>();
+            var sleepScores = new List<int>();
+
+            for (int i = 0; i < days; i++)
+            {
+                var curDate = startDate.AddDays(i);
+                string label = curDate.ToString("dd/MM");
+                dateLabels.Add(label);
+
+                var track = trackings.FirstOrDefault(t => t.TrackingDate.Date == curDate.Date);
+                caloriesIn.Add(track?.CaloriesConsumed ?? 0);
+                waterList.Add(Math.Round(track?.WaterConsumed ?? 0.0, 1));
+                stepsList.Add(track?.StepsCount ?? 0);
+
+                var burn = activities.Where(a => a.LogDate.Date == curDate.Date).Sum(a => a.CaloriesBurned);
+                caloriesBurned.Add(Math.Round(burn, 1));
+
+                var sleep = sleepLogs.FirstOrDefault(s => s.SleepDate.Date == curDate.Date);
+                sleepScores.Add(sleep?.SleepScore ?? 0);
+            }
+
+            // Quy luật khai phá dữ liệu (Pattern Insight)
+            var totalBurn = caloriesBurned.Sum();
+            var avgWater = waterList.Count > 0 ? waterList.Average() : 0;
+            string insight = totalBurn > 500 && avgWater >= 2.0
+                ? "Thói quen rất tích cực: Bạn duy trì lượng nước đều đặn vào các ngày vận động cao!"
+                : "Khuyến nghị: Cần tăng cường vận động ít nhất 30 phút/ngày và uống đủ 2L nước để tối ưu hóa năng lượng.";
+
+            return Ok(new
+            {
+                labels = dateLabels,
+                caloriesIn,
+                caloriesBurned,
+                water = waterList,
+                steps = stepsList,
+                sleepScores,
+                targetCalories = user.TargetCalories,
+                targetWater = user.TargetWater,
+                insight
+            });
+        }
+
+        // ==========================================
+        // 10. API CẬP NHẬT HỒ SƠ THỂ TRẠNG CÁ NHÂN
+        // ==========================================
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+        {
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null) return NotFound("Người dùng không tồn tại.");
+
+            user.FullName = dto.FullName.Trim();
+            user.Gender = dto.Gender;
+            user.Age = dto.Age;
+            user.Height = dto.Height;
+            user.Weight = dto.Weight;
+            user.ActivityLevel = dto.ActivityLevel;
+            user.Goal = dto.Goal;
+
+            // Tính lại BMR & TDEE theo logic Mifflin–St Jeor
+            double bmr = user.Gender == "Nam"
+                ? (10 * user.Weight) + (6.25 * user.Height) - (5 * user.Age) + 5
+                : (10 * user.Weight) + (6.25 * user.Height) - (5 * user.Age) - 161;
+
+            double f = user.ActivityLevel switch
+            {
+                "Ít vận động" => 1.20,
+                "Vận động nhẹ" => 1.375,
+                "Vận động nhiều" => 1.725,
+                "Rất nhiều" => 1.90,
+                _ => 1.55
+            };
+
+            double tdee = bmr * f;
+            user.TargetCalories = user.Goal switch
+            {
+                "Giảm cân" => (int)Math.Round(tdee - 500),
+                "Tăng cân" => (int)Math.Round(tdee + 400),
+                _ => (int)Math.Round(tdee)
+            };
+            user.TargetWater = Math.Round(user.Weight * 0.035, 1);
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cập nhật hồ sơ thành công!", user });
         }
     }
 }

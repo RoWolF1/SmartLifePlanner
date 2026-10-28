@@ -20,11 +20,18 @@ namespace SmartLifePlanner.Models
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
+        public string Gender { get; set; } = "Nam";
+        public int Age { get; set; } = 20;
         public double Height { get; set; }
         public double Weight { get; set; }
+        public string ActivityLevel { get; set; } = "Vận động vừa";
+        public string Goal { get; set; } = "Duy trì";
         public double TargetWater { get; set; } = 2.5;
         public int TargetCalories { get; set; } = 2000;
-        public int RoleId { get; set; }
+        public int RoleId { get; set; } = 1;
+
+        [ForeignKey("RoleId")]
+        public virtual Role? Role { get; set; }
     }
 
     [Table("Meals")]

@@ -1,0 +1,43 @@
+﻿@{
+    ViewData["Title"] = "Phân công nhiệm vụ đồ án bằng AI";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">🤖 Tự động phân công nhiệm vụ (3 tuần) với Gemini AI</h4>
+        </div>
+        <div class="card-body">
+            <form asp-controller="TaskAssignment" asp-action="TaoKeHoach" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Mục tiêu / Chức năng đồ án SmartLifePlanner:</label>
+                    <textarea name="moTaDuAn" class="form-control" rows="3" placeholder="Ví dụ: Xây dựng web quản lý lối sống cá nhân, theo dõi lịch sinh hoạt, gợi ý thực đơn món ăn thông minh..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Danh sách thành viên & vai trò (nếu có):</label>
+                    <textarea name="thanhVien" class="form-control" rows="2" placeholder="Ví dụ: Dương Thu Hậu (Nhóm trưởng / Fullstack), Thành viên B (Database & Backend), Thành viên C (Giao diện Frontend)..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-success px-4">
+                    🚀 Nhờ AI Phân Công Nhiệm Vụ 3 Tuần
+                </button>
+            </form>
+
+            @if (ViewBag.Loi != null)
+            {
+                <div class="alert alert-danger mt-3">@ViewBag.Loi</div>
+            }
+
+            @if (ViewBag.KeHoach != null)
+            {
+                <hr class="my-4" />
+                <h5 class="text-success fw-bold">📋 Kế hoạch phân chia công việc chi tiết:</h5>
+                <div class="p-3 bg-light border rounded">
+                    <pre style="white-space: pre-wrap; font-family: inherit; font-size: 15px; margin-bottom: 0;">@ViewBag.KeHoach</pre>
+                </div>
+                <small class="text-muted mt-2 d-block">* Copy nội dung từng tuần này dán vào các <strong>Issues</strong> trên GitHub của nhóm để quản lý commit nhé.</small>
+            }
+        </div>
+    </div>
+</div>
