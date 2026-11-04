@@ -14,12 +14,12 @@ namespace SmartLifePlanner.Controllers
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
-        public string Gender { get; set; } = "Nam"; // Nam / Nữ
+        public string Gender { get; set; } = "Nam";
         public int Age { get; set; } = 20;
-        public double Height { get; set; } // cm
-        public double Weight { get; set; } // kg
-        public string ActivityLevel { get; set; } = "Vận động vừa"; // Ít vận động, Vận động nhẹ, Vận động vừa, Vận động nhiều, Rất nhiều
-        public string Goal { get; set; } = "Duy trì"; // Giảm cân, Duy trì, Tăng cân
+        public double Height { get; set; }
+        public double Weight { get; set; }
+        public string ActivityLevel { get; set; } = "Vận động vừa";
+        public string Goal { get; set; } = "Duy trì";
     }
 
     public class LoginDto
@@ -42,7 +42,7 @@ namespace SmartLifePlanner.Controllers
         }
 
         // ==========================================
-        // 1. ĐĂNG KÝ TÀI KHOẢN (BẢO MẬT BCRYPT + LOGIC BMR/TDEE)
+        // 1. ĐĂNG KÝ TÀI KHOẢN
         // ==========================================
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
@@ -53,24 +53,22 @@ namespace SmartLifePlanner.Controllers
             var exists = await _context.Users.AnyAsync(u => u.Email.ToLower() == dto.Email.Trim().ToLower());
             if (exists) return BadRequest("Email này đã được đăng ký tài khoản.");
 
-            // Áp dụng công thức BMR của Thành viên 3 (Mifflin–St Jeor)
+            // Công thức Mifflin–St Jeor
             double bmr = dto.Gender == "Nam"
                 ? (10 * dto.Weight) + (6.25 * dto.Height) - (5 * dto.Age) + 5
                 : (10 * dto.Weight) + (6.25 * dto.Height) - (5 * dto.Age) - 161;
 
-            // Hệ số hoạt động F
             double f = dto.ActivityLevel switch
             {
                 "Ít vận động" => 1.20,
                 "Vận động nhẹ" => 1.375,
                 "Vận động nhiều" => 1.725,
                 "Rất nhiều" => 1.90,
-                _ => 1.55 // Vận động vừa
+                _ => 1.55
             };
 
             double tdee = bmr * f;
 
-            // Mục tiêu calo theo định hướng
             int targetCalo = dto.Goal switch
             {
                 "Giảm cân" => (int)Math.Round(tdee - 500),
@@ -78,10 +76,8 @@ namespace SmartLifePlanner.Controllers
                 _ => (int)Math.Round(tdee)
             };
 
-            // Mục tiêu nước: Cân nặng x 0.035
             double targetWater = Math.Round(dto.Weight * 0.035, 1);
 
-            // Băm mật khẩu bằng BCrypt (Bảo mật tuyệt đối, chống lộ plain text trong DB)
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
             var user = new User
@@ -97,7 +93,7 @@ namespace SmartLifePlanner.Controllers
                 Goal = dto.Goal,
                 TargetCalories = targetCalo,
                 TargetWater = targetWater,
-                RoleId = 1 // Mặc định là User thường
+                RoleId = 1
             };
 
             _context.Users.Add(user);
@@ -113,7 +109,7 @@ namespace SmartLifePlanner.Controllers
         }
 
         // ==========================================
-        // 2. ĐĂNG NHẬP (TRẢ VỀ GÓI TIN JWT TOKEN)
+        // 2. ĐĂNG NHẬP (CẤP JWT TOKEN)
         // ==========================================
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
@@ -127,19 +123,21 @@ namespace SmartLifePlanner.Controllers
 
             var roleName = user.Role?.RoleName ?? "User";
 
-            // Tạo Token JWT
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? "SmartLifePlanner_Secret_Key_For_Jwt_Authentication_2026_Secure_Token_Key");
 
+            // Ép kiểu chuỗi rõ ràng để tránh nhầm sang Claim(BinaryReader)
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+                new Claim(ClaimTypes.Name, user.FullName ?? string.Empty),
+                new Claim(ClaimTypes.Role, roleName)
+            };
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Name, user.FullName),
-                    new Claim(ClaimTypes.Role, roleName)
-                }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddDays(7),
                 Issuer = _config["Jwt:Issuer"],
                 Audience = _config["Jwt:Audience"],
@@ -164,7 +162,7 @@ namespace SmartLifePlanner.Controllers
         }
 
         // ==========================================
-        // 3. XEM THÔNG TIN CÁ NHÂN (YÊU CẦU JWT AUTHORIZED)
+        // 3. XEM PROFILE (YÊU CẦU JWT TOKEN)
         // ==========================================
         [Authorize]
         [HttpGet("profile")]
@@ -177,7 +175,6 @@ namespace SmartLifePlanner.Controllers
             var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId);
             if (user == null) return NotFound("Người dùng không tồn tại.");
 
-            // Tính toán lại BMR, BMI, TDEE theo logic Thành viên 3
             double heightM = user.Height / 100.0;
             double bmi = Math.Round(user.Weight / (heightM * heightM), 2);
             string bmiCategory = bmi < 18.5 ? "Thiếu cân" : bmi < 25 ? "Bình thường" : bmi < 30 ? "Thừa cân" : "Béo phì";
@@ -194,6 +191,7 @@ namespace SmartLifePlanner.Controllers
                 "Rất nhiều" => 1.90,
                 _ => 1.55
             };
+
             double tdee = bmr * f;
 
             return Ok(new

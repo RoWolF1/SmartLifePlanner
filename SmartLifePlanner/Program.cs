@@ -1,54 +1,49 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using SmartLifePlanner.Data;
 using SmartLifePlanner.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Đăng ký CSDL
+// 1. Cấu hình Database SQL Server
 builder.Services.AddDbContext<LifeSmartDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? "Server=(localdb)\\mssqllocaldb;Database=SmartLifePlannerDB;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;"));
 
-// 2. Cấu hình JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "SmartLifePlanner_Secret_Key_For_Jwt_Authentication_2026_Secure_Token_Key";
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ValidateIssuer = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidateAudience = true,
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        ClockSkew = TimeSpan.Zero
-    };
-});
-
-builder.Services.AddAuthorization();
-builder.Services.AddControllers();
+// 2. Kích hoạt hỗ trợ cả MVC Views và Razor Pages
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// 3. Middleware phục vụ Static Files & Default Files
-// BẮT BUỘC: app.UseDefaultFiles() phải đứng TRƯỚC app.UseStaticFiles()
-app.UseDefaultFiles();
+// 3. Khởi tạo Database và Seeding dữ liệu tự động
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<LifeSmartDbContext>();
+        DbInitializer.Initialize(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Lỗi khi tự động khởi tạo dữ liệu.");
+    }
+}
+
+// 4. Cấu hình Pipeline Middleware
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
-// 4. Thứ tự Middleware xác thực & phân quyền
-app.UseAuthentication();
 app.UseAuthorization();
 
+// 5. CẤU HÌNH ĐIỀU HƯỚNG VỀ TRANG CHỦ (Khắc phục triệt để lỗi 404)
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapRazorPages();
 app.MapControllers();
 
 app.Run();
