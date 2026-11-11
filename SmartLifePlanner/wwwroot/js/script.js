@@ -18,7 +18,7 @@ let currentEtmMode = 'plan'; // 'plan' (Kế hoạch) hoặc 'track' (Theo dõi)
 // 0. XÁC THỰC BẢO MẬT JWT & PHÂN QUYỀN USER
 // ==========================================
 function getToken() {
-    return localStorage.getItem("jwtToken");
+    return localStorage.getItem("jwtToken") || localStorage.getItem("token") || localStorage.getItem("authToken");
 }
 
 function setToken(token) {
@@ -27,6 +27,9 @@ function setToken(token) {
 
 function removeToken() {
     localStorage.removeItem("jwtToken");
+    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
+    sessionStorage.clear();
 }
 
 function checkAuthStatus() {
@@ -150,10 +153,10 @@ async function loadUserProfile() {
 }
 
 function handleLogout() {
-    if (!confirm("Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc?")) return;
+    if (!confirm("Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc để đổi tài khoản?")) return;
     removeToken();
     showNotification("Đã đăng xuất khỏi hệ thống!");
-    checkAuthStatus();
+    window.location.href = "/Auth/Login";
 }
 
 function showNotification(message) {
@@ -181,23 +184,27 @@ function formatDuration(totalSeconds) {
 }
 
 // ==========================================
-// 1. PHÂN HỆ EAT THIS MUCH: PLAN VS TRACK
+// 1. PHÂN HỆ EAT THIS MUCH: PLAN VS TRACK & LANDING
 // ==========================================
 function switchEtmTab(tabName) {
-    const tabs = ['plan', 'track', 'statistics', 'water', 'sleep', 'profile'];
+    const tabs = ['landing', 'plan', 'track', 'statistics', 'water', 'sleep', 'profile'];
     tabs.forEach(t => {
         const n = document.getElementById(`tab-nav-${t}`);
         if (n) n.classList.toggle('active', t === tabName);
     });
 
-    ['statistics', 'water', 'sleep', 'profile'].forEach(t => {
+    // Ẩn tất cả các view con
+    ['landing', 'planner', 'statistics', 'water', 'sleep', 'profile'].forEach(t => {
         const v = document.getElementById(`view-etm-${t}`);
-        if (v) v.style.display = (t === tabName) ? 'block' : 'none';
+        if (v) v.style.display = 'none';
     });
 
     const plannerView = document.getElementById('view-etm-planner');
 
-    if (tabName === 'plan' || tabName === 'track') {
+    if (tabName === 'landing') {
+        const landingView = document.getElementById('view-etm-landing');
+        if (landingView) landingView.style.display = 'block';
+    } else if (tabName === 'plan' || tabName === 'track') {
         currentEtmMode = tabName;
         if (plannerView) plannerView.style.display = 'block';
 
@@ -217,7 +224,9 @@ function switchEtmTab(tabName) {
 
         loadEtmPlanForCurrentDate();
     } else {
-        if (plannerView) plannerView.style.display = 'none';
+        const targetView = document.getElementById(`view-etm-${tabName}`);
+        if (targetView) targetView.style.display = 'block';
+
         if (tabName === 'statistics') loadStatistics(currentStatDays);
         if (tabName === 'profile') fetchUserProfileDetails();
     }
@@ -469,7 +478,6 @@ function closeGeneratorDrawer() {
 }
 
 async function executeMealGenerator() {
-    // Đọc toàn bộ các tùy chọn từ Generator Settings
     const focus = document.getElementById('genSelectFocus')?.value || "Balanced";
     const priceLimit = document.getElementById('genDailyPriceLimit')?.value || "No limit";
     const carbsTarget = document.getElementById('genTargetCarbsAs')?.value || "Total carbs";
@@ -1602,7 +1610,122 @@ document.addEventListener("DOMContentLoaded", function () {
     loadTodayMealsOverview();
     loadOverviewTimelines();
 
-    if (document.getElementById('view-etm-planner')) {
+    // Mặc định khởi chạy vào Tab Trang chủ & Giới thiệu
+    if (document.getElementById('view-etm-landing')) {
+        switchEtmTab('landing');
+    } else if (document.getElementById('view-etm-planner')) {
         switchEtmTab('plan');
     }
 });
+
+// ==========================================
+// 11. ĐIỀU KHIỂN CHATBOT AI (FLOATING WIDGET)
+// ==========================================
+function toggleChatWindow() {
+    const chatWin = document.getElementById("chatWindow");
+    if (!chatWin) return;
+    const isHidden = chatWin.style.display === "none" || chatWin.style.display === "";
+    chatWin.style.display = isHidden ? "flex" : "none";
+    if (isHidden) {
+        document.getElementById("chatInput")?.focus();
+        loadChatHistory();
+    }
+}
+
+function handleChatEnter(e) {
+    if (e.key === "Enter") {
+        sendChatMessage();
+    }
+}
+
+async function loadChatHistory() {
+    try {
+        const token = getToken();
+        const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+        const res = await fetch("/api/chat/history?userId=1", { headers });
+        if (!res.ok) return;
+        const list = await res.json();
+        const chatBody = document.getElementById("chatBody");
+        if (!chatBody || list.length === 0) return;
+
+        chatBody.innerHTML = list.map(c => `
+            <div class="chat-msg ${c.sender === 'User' ? 'chat-msg-user' : 'chat-msg-ai'}">
+                ${c.messageText}
+                <div style="font-size:0.65rem; opacity:0.6; text-align:${c.sender === 'User' ? 'right' : 'left'}; margin-top:4px;">${c.time || ''}</div>
+            </div>
+        `).join("");
+        chatBody.scrollTop = chatBody.scrollHeight;
+    } catch (err) {
+        console.error("Lỗi tải lịch sử chat:", err);
+    }
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById("chatInput");
+    const msgText = input ? input.value.trim() : "";
+    if (!msgText) return;
+
+    const chatBody = document.getElementById("chatBody");
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Thêm tin nhắn của User vào giao diện ngay lập tức
+    if (chatBody) {
+        chatBody.innerHTML += `
+            <div class="chat-msg chat-msg-user">
+                ${msgText}
+                <div style="font-size:0.65rem; opacity:0.6; text-align:right; margin-top:4px;">${nowTime}</div>
+            </div>
+        `;
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    input.value = "";
+
+    // 2. Thêm hiệu ứng chờ phản hồi
+    const loadingId = "loadingMsg_" + Date.now();
+    if (chatBody) {
+        chatBody.innerHTML += `
+            <div class="chat-msg chat-msg-ai" id="${loadingId}">
+                <em>🤖 AI đang đối chiếu dữ liệu sinh trắc học & calo...</em>
+            </div>
+        `;
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    // 3. Gửi câu hỏi lên API C#
+    try {
+        const token = getToken();
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch("/api/chat/ask", {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify({ userId: 1, message: msgText })
+        });
+
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+
+        if (res.ok) {
+            const data = await res.json();
+            if (chatBody) {
+                chatBody.innerHTML += `
+                    <div class="chat-msg chat-msg-ai">
+                        ${data.reply}
+                        <div style="font-size:0.65rem; opacity:0.6; margin-top:4px;">${data.time || nowTime}</div>
+                    </div>
+                `;
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+        } else {
+            const err = await res.text();
+            alert("Lỗi từ AI: " + err);
+        }
+    } catch {
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+        alert("Lỗi kết nối máy chủ chat!");
+    }
+}

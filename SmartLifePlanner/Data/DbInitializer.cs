@@ -60,7 +60,7 @@ namespace SmartLifePlanner.Data
                 context.SaveChanges();
             }
 
-            // 4. Khởi tạo Timelines hôm nay (Khớp đúng cấu trúc bảng Timelines trong SQL)
+            // 4. Khởi tạo Timelines hôm nay
             var today = DateTime.Today;
             if (!context.Timelines.Any(t => t.PlanDate == today))
             {
@@ -76,7 +76,7 @@ namespace SmartLifePlanner.Data
                 context.SaveChanges();
             }
 
-            // 5. Khởi tạo Lịch sử 7 ngày (Khớp đúng cột WaterConsumed, CaloriesConsumed, StepsCount)
+            // 5. Khởi tạo Lịch sử 7 ngày (Đã sửa lỗi phép nhân)
             if (!context.DailyTrackings.Any())
             {
                 for (int i = 6; i >= 1; i--)
@@ -105,7 +105,7 @@ namespace SmartLifePlanner.Data
                 context.SaveChanges();
             }
 
-            // 6. Khởi tạo bản ghi Giấc ngủ hôm nay nếu chưa có
+            // 6. Khởi tạo bản ghi Giấc ngủ hôm nay
             if (!context.SleepLogs.Any(s => s.SleepDate == today))
             {
                 context.SleepLogs.Add(new SleepLog
@@ -118,6 +118,19 @@ namespace SmartLifePlanner.Data
                     QualityRating = "Energetic",
                     SleepScore = 92,
                     SleepDate = today,
+                    CreatedAt = DateTime.Now
+                });
+                context.SaveChanges();
+            }
+
+            // 7. Khởi tạo Tin nhắn chào mừng mặc định của Chatbot AI nếu bảng trống
+            if (!context.ChatMessages.Any())
+            {
+                context.ChatMessages.Add(new ChatMessage
+                {
+                    UserId = 1,
+                    Sender = "AI",
+                    MessageText = "Xin chào Hậu 👋! Mình là trợ lý dinh dưỡng AI của LifeSmart. Mình có thể hỗ trợ gì cho chế độ dinh dưỡng và lối sống hôm nay của bạn?",
                     CreatedAt = DateTime.Now
                 });
                 context.SaveChanges();

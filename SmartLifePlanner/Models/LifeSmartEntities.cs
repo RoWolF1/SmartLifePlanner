@@ -131,18 +131,52 @@ namespace SmartLifePlanner.Models
         public DateTime? CreatedAt { get; set; } = DateTime.Now;
     }
 
+    [Table("ChatMessages")]
+    public class ChatMessage
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MessageId { get; set; }
+
+        public int UserId { get; set; } = 1;
+
+        [Required]
+        [MaxLength(20)]
+        public string Sender { get; set; } = "User"; // "User" hoặc "AI"
+
+        [Required]
+        public string MessageText { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
+    }
+
     public class LifeSmartDbContext : DbContext
     {
         public LifeSmartDbContext(DbContextOptions<LifeSmartDbContext> options) : base(options) { }
 
-        public DbSet<User> Users { get; set; }
-        public DbSet<Role> Roles { get; set; }
-        public DbSet<Meal> Meals { get; set; }
-        public DbSet<DailyMeal> DailyMeals { get; set; }
-        public DbSet<DailyTracking> DailyTrackings { get; set; }
-        public DbSet<Timeline> Timelines { get; set; }
-        public DbSet<UserActivity> Activities { get; set; }
-        public DbSet<WaterLog> WaterLogs { get; set; }
-        public DbSet<SleepLog> SleepLogs { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
+        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<Role> Roles { get; set; } = null!;
+        public DbSet<Meal> Meals { get; set; } = null!;
+        public DbSet<DailyMeal> DailyMeals { get; set; } = null!;
+        public DbSet<DailyTracking> DailyTrackings { get; set; } = null!;
+        public DbSet<Timeline> Timelines { get; set; } = null!;
+        public DbSet<UserActivity> Activities { get; set; } = null!;
+        public DbSet<WaterLog> WaterLogs { get; set; } = null!;
+        public DbSet<SleepLog> SleepLogs { get; set; } = null!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<ChatMessage>(entity =>
+            {
+                entity.HasKey(e => e.MessageId);
+                entity.ToTable("ChatMessages");
+            });
+        }
     }
 }

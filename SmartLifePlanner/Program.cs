@@ -12,6 +12,8 @@ builder.Services.AddDbContext<LifeSmartDbContext>(options =>
 // 2. Kích hoạt hỗ trợ cả MVC Views và Razor Pages
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+// Đăng ký HttpClient để gọi Gemini API
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
