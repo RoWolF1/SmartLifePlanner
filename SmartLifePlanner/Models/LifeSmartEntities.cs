@@ -57,9 +57,17 @@ namespace SmartLifePlanner.Models
         public int UserId { get; set; } = 1;
         public string MealType { get; set; } = "Lunch";
         public int MealId { get; set; }
+
         [ForeignKey("MealId")]
         public virtual Meal? Meal { get; set; }
+
         public DateTime PlanDate { get; set; } = DateTime.Today;
+
+        // Bổ sung thuộc tính này để khớp với cột IsEaten trong SQL Server
+        public bool IsEaten { get; set; } = false;
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 
     [Table("DailyTrackings")]
@@ -72,6 +80,9 @@ namespace SmartLifePlanner.Models
         public double WaterConsumed { get; set; } = 0.0;
         public int CaloriesConsumed { get; set; } = 0;
         public int StepsCount { get; set; } = 0;
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 
     [Table("Timelines")]
@@ -85,6 +96,9 @@ namespace SmartLifePlanner.Models
         public string Category { get; set; } = "Task";
         public bool IsCompleted { get; set; } = false;
         public DateTime PlanDate { get; set; } = DateTime.Today;
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 
     [Table("Activities")]
@@ -99,6 +113,9 @@ namespace SmartLifePlanner.Models
         public double CaloriesBurned { get; set; } = 0.0;
         public DateTime LogDate { get; set; } = DateTime.Today;
         public DateTime? CreatedAt { get; set; } = DateTime.Now;
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 
     [Table("WaterLogs")]
@@ -113,6 +130,9 @@ namespace SmartLifePlanner.Models
         public int Calories { get; set; } = 0;
         public DateTime LoggedAt { get; set; } = DateTime.Now;
         public DateTime LogDate { get; set; } = DateTime.Today;
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 
     [Table("SleepLogs")]
@@ -129,6 +149,9 @@ namespace SmartLifePlanner.Models
         public int SleepScore { get; set; } = 85;
         public DateTime SleepDate { get; set; } = DateTime.Today;
         public DateTime? CreatedAt { get; set; } = DateTime.Now;
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 
     [Table("ChatMessages")]

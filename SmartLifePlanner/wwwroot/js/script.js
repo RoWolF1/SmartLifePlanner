@@ -15,7 +15,7 @@ let currentDayPlanData = null;
 let currentEtmMode = 'plan'; // 'plan' (Kế hoạch) hoặc 'track' (Theo dõi)
 
 // ==========================================
-// 0. XÁC THỰC BẢO MẬT JWT & PHÂN QUYỀN USER
+// 0. XÁC THỰC BẢO MẬT JWT & ĐIỀU KHIỂN CHẾ ĐỘ KHÁCH
 // ==========================================
 function getToken() {
     return localStorage.getItem("jwtToken") || localStorage.getItem("token") || localStorage.getItem("authToken");
@@ -25,36 +25,175 @@ function setToken(token) {
     localStorage.setItem("jwtToken", token);
 }
 
+function getCurrentUserId() {
+    const uid = localStorage.getItem("currentUserId");
+    return uid ? parseInt(uid) : 1;
+}
+
+function setCurrentUserId(id) {
+    localStorage.setItem("currentUserId", id);
+}
+
 function removeToken() {
     localStorage.removeItem("jwtToken");
     localStorage.removeItem("token");
     localStorage.removeItem("authToken");
+    localStorage.removeItem("currentUserId");
     sessionStorage.clear();
 }
 
-function checkAuthStatus() {
-    const token = getToken();
-    const modal = document.getElementById("authModalOverlay");
-    if (!token) {
-        if (modal) modal.style.display = "flex";
-        toggleAuthBox('login');
+// Bật/tắt xem mật khẩu (Icon con mắt mở/nhắm)
+function togglePasswordVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!input || !icon) return;
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
     } else {
-        if (modal) modal.style.display = "none";
-        loadUserProfile();
+        input.type = "password";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
     }
 }
 
+// Chuyển đổi qua lại giữa các hộp trong Modal: Đăng nhập / Đăng ký / Quên mật khẩu
 function toggleAuthBox(mode) {
     const boxLogin = document.getElementById("boxLogin");
     const boxReg = document.getElementById("boxRegister");
+    const boxForgot = document.getElementById("boxForgot");
+    const subTitle = document.getElementById("authModalSubTitle");
+
     if (boxLogin) boxLogin.style.display = (mode === 'login') ? "block" : "none";
     if (boxReg) boxReg.style.display = (mode === 'register') ? "block" : "none";
+    if (boxForgot) boxForgot.style.display = (mode === 'forgot') ? "block" : "none";
+
+    if (subTitle) {
+        if (mode === 'login') subTitle.innerText = "Đăng nhập tài khoản để đồng bộ dữ liệu sinh trắc";
+        if (mode === 'register') subTitle.innerText = "Điền đầy đủ thông tin để thuật toán AI tính toán BMR/TDEE";
+        if (mode === 'forgot') subTitle.innerText = "Khôi phục quyền truy cập tài khoản";
+    }
+
+    if (mode === 'forgot') {
+        const s1 = document.getElementById("forgotStep1");
+        const s2 = document.getElementById("forgotStep2");
+        if (s1) s1.style.display = "flex";
+        if (s2) s2.style.display = "none";
+    }
 }
 
+function openAuthModal(mode = 'login') {
+    const modal = document.getElementById("authModalOverlay");
+    if (modal) {
+        modal.style.display = "flex";
+        toggleAuthBox(mode);
+    }
+}
+
+function closeAuthModal() {
+    const modal = document.getElementById("authModalOverlay");
+    if (modal) modal.style.display = "none";
+}
+
+// Kiểm tra trạng thái đăng nhập: Nếu chưa có Token -> Chuyển sang giao diện Khách
+async function checkAuthStatus() {
+    const token = getToken();
+    if (!token) {
+        applyGuestMode();
+    } else {
+        await loadUserProfile();
+        await loadDashboardData();
+        await loadTodayMealsOverview();
+    }
+}
+
+// Chế độ Khách (Guest Mode)
+function applyGuestMode() {
+    const titleName = document.getElementById("headerUserNameTitle");
+    const headerAvatar = document.getElementById("headerAvatar");
+    const roleBadge = document.getElementById("badgeUserRole");
+    const btnAuth = document.getElementById("btnHeaderAuth") || document.querySelector(".btn-auth-header") || document.querySelector(".btn-logout-header");
+
+    if (titleName) titleName.innerText = "Xin chào, Bạn (Chế độ Khách) 👋";
+    if (headerAvatar) headerAvatar.innerText = "G";
+    if (roleBadge) {
+        roleBadge.innerText = "CHƯA ĐĂNG NHẬP";
+        roleBadge.style.background = "#f1f5f9";
+        roleBadge.style.color = "#64748b";
+    }
+    if (btnAuth) {
+        btnAuth.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập`;
+        btnAuth.onclick = () => openAuthModal('login');
+        btnAuth.style.background = "#dcfce7";
+        btnAuth.style.color = "#15803d";
+        btnAuth.style.borderColor = "#86efac";
+    }
+
+    const bmiEl = document.getElementById("dash-bmi");
+    if (bmiEl) bmiEl.innerText = "--";
+    const caloEl = document.getElementById("dash-calo");
+    if (caloEl) caloEl.innerText = "0";
+    const waterEls = document.querySelectorAll(".water-value");
+    waterEls.forEach(el => el.innerText = "0.0 L");
+
+    const profBmi = document.getElementById('profBmiVal');
+    const profBmiCat = document.getElementById('profBmiCat');
+    const profBmr = document.getElementById('profBmrVal');
+    const profTdee = document.getElementById('profTdeeVal');
+    const profWater = document.getElementById('profTargetWater');
+    const profDesc = document.getElementById('profileBurnDesc');
+
+    if (profBmi) profBmi.innerText = "--";
+    if (profBmiCat) profBmiCat.innerText = "Chưa xác định";
+    if (profBmr) profBmr.innerText = "-- kcal";
+    if (profTdee) profTdee.innerText = "-- kcal";
+    if (profWater) profWater.innerText = "-- L";
+    if (profDesc) profDesc.innerText = "Đăng nhập tài khoản để hệ thống tính toán chính xác mức năng lượng nền và lượng nước cần bổ sung cho thể trạng của bạn.";
+
+    const fName = document.getElementById('profFullName');
+    if (fName) fName.value = "";
+
+    const guestNotice = `
+        <div style="background:#fff; border:2px dashed #cbd5e1; border-radius:16px; padding:36px; text-align:center;">
+            <span style="font-size:2.6rem;">🔒</span>
+            <h3 style="margin:10px 0 6px 0; color:var(--dark);">Dữ liệu Cá Nhân Được Bảo Vệ</h3>
+            <p style="color:var(--gray); font-size:0.9rem; max-width:500px; margin:0 auto 16px;">
+                Bạn đang duyệt web ở chế độ Khách. Vui lòng đăng nhập để hệ thống đối chiếu thể trạng, cá nhân hóa thực đơn và lưu tiến trình.
+            </p>
+            <button class="btn btn-primary" onclick="openAuthModal('login')">Đăng nhập Ngay</button>
+            <button class="btn btn-orange" style="margin-left:8px;" onclick="openAuthModal('register')">Đăng ký Mới</button>
+        </div>
+    `;
+
+    const mealsContainer = document.getElementById("mealsContainerList");
+    if (mealsContainer) mealsContainer.innerHTML = guestNotice;
+
+    const waterList = document.getElementById("waterLogList");
+    if (waterList) waterList.innerHTML = '<p style="color:var(--gray); text-align:center; padding:16px;">Vui lòng đăng nhập để xem lịch sử uống nước.</p>';
+
+    const sleepDetail = document.getElementById("sleepDetailResult");
+    if (sleepDetail) sleepDetail.innerHTML = '<p style="color:var(--gray); text-align:center; padding:16px;">Vui lòng đăng nhập để ghi nhận và chấm điểm giấc ngủ.</p>';
+
+    const statTable = document.getElementById("statHistoryTableBody");
+    if (statTable) statTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--gray);">Dữ liệu thống kê chỉ hiển thị khi đã đăng nhập tài khoản.</td></tr>`;
+}
+
+// Xử lý Đăng xuất
+function handleLogout() {
+    if (!confirm("Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc?")) return;
+    removeToken();
+    showNotification("Đã đăng xuất! Chuyển về chế độ Khách.");
+    applyGuestMode();
+    openAuthModal('login');
+}
+
+// Xử lý gửi Form Đăng nhập
 async function handleLoginSubmit() {
     const email = document.getElementById("loginEmail")?.value.trim();
     const password = document.getElementById("loginPassword")?.value;
-    if (!email || !password) return alert("Vui lòng nhập đầy đủ email và mật khẩu đăng nhập!");
+    if (!email || !password) return alert("Vui lòng nhập đầy đủ email và mật khẩu!");
 
     try {
         const res = await fetch("/api/auth/login", {
@@ -64,36 +203,44 @@ async function handleLoginSubmit() {
         });
 
         if (res.ok) {
-            const text = await res.text();
-            const data = text ? JSON.parse(text) : {};
+            const data = await res.json();
             setToken(data.token);
-            showNotification("🎉 Đăng nhập thành công! Token xác thực JWT đã sẵn sàng.");
-            const modal = document.getElementById("authModalOverlay");
-            if (modal) modal.style.display = "none";
-            loadDashboardData();
-            loadUserProfile();
+
+            const uid = data.user?.userId || data.userId;
+            if (uid) {
+                setCurrentUserId(uid);
+            }
+
+            closeAuthModal();
+            showNotification("🎉 Đăng nhập thành công!");
+
+            await loadUserProfile();
+            await loadDashboardData();
+            await loadTodayMealsOverview();
+            loadEtmPlanForCurrentDate();
         } else {
             const err = await res.json().catch(() => ({ message: "Sai tài khoản hoặc mật khẩu!" }));
-            alert("Đăng nhập thất bại: " + (err.message || "Thông tin không chính xác!"));
+            alert(err.message || "Đăng nhập thất bại!");
         }
     } catch {
         alert("Lỗi kết nối máy chủ xác thực backend!");
     }
 }
 
+// Xử lý gửi Form Đăng ký
 async function handleRegisterSubmit() {
     const fullName = document.getElementById("regFullName")?.value.trim();
     const email = document.getElementById("regEmail")?.value.trim();
     const password = document.getElementById("regPassword")?.value;
     const gender = document.getElementById("regGender")?.value || "Nam";
-    const age = parseInt(document.getElementById("regAge")?.value) || 20;
-    const height = parseFloat(document.getElementById("regHeight")?.value) || 173;
-    const weight = parseFloat(document.getElementById("regWeight")?.value) || 60;
+    const age = parseInt(document.getElementById("regAge")?.value);
+    const height = parseFloat(document.getElementById("regHeight")?.value);
+    const weight = parseFloat(document.getElementById("regWeight")?.value);
     const activityLevel = document.getElementById("regActivity")?.value || "Vận động vừa";
     const goal = document.getElementById("regGoal")?.value || "Duy trì";
 
-    if (!fullName || !email || !password) {
-        return alert("Vui lòng điền đủ họ tên, email và mật khẩu!");
+    if (!fullName || !email || !password || isNaN(age) || isNaN(height) || isNaN(weight)) {
+        return alert("Vui lòng điền đầy đủ tất cả các thông tin thể trạng bắt buộc!");
     }
 
     try {
@@ -104,7 +251,7 @@ async function handleRegisterSubmit() {
         });
 
         if (res.ok) {
-            alert("🎉 Đăng ký thành công! Hãy đăng nhập để hệ thống tính toán chỉ số BMR/TDEE cá nhân.");
+            alert("🎉 Đăng ký tài khoản thành công! Hãy đăng nhập để kích hoạt lộ trình calo & nước của bạn.");
             toggleAuthBox('login');
         } else {
             const msg = await res.text();
@@ -115,72 +262,200 @@ async function handleRegisterSubmit() {
     }
 }
 
+// Xử lý Gửi mã OTP Quên mật khẩu
+async function handleSendOtp() {
+    const email = document.getElementById("forgotEmail")?.value.trim();
+    if (!email) return alert("Vui lòng nhập địa chỉ email đăng ký!");
+
+    const btn = event.target;
+    const oldText = btn.innerText;
+    btn.innerText = "Đang gửi mail...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch("/api/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            document.getElementById("forgotStep1").style.display = "none";
+            document.getElementById("forgotStep2").style.display = "flex";
+
+            const notice = document.getElementById("forgotOtpNotice");
+            if (notice) notice.innerText = data.message;
+
+            const codeInput = document.getElementById("forgotOtpCode");
+            if (codeInput) {
+                codeInput.value = "";
+                codeInput.focus();
+            }
+        } else {
+            alert(data.message || data || "Không tìm thấy tài khoản!");
+        }
+    } catch {
+        alert("Lỗi kết nối khi gửi email xác thực!");
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
+}
+
+// Xử lý Xác nhận OTP và đặt lại mật khẩu mới
+async function handleResetPasswordSubmit() {
+    const email = document.getElementById("forgotEmail")?.value.trim();
+    const otp = document.getElementById("forgotOtpCode")?.value.trim();
+    const newPassword = document.getElementById("forgotNewPassword")?.value;
+
+    if (!otp || !newPassword) return alert("Vui lòng nhập đủ mã OTP và mật khẩu mới!");
+
+    try {
+        const res = await fetch("/api/auth/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, otp, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert("✅ " + data.message);
+            toggleAuthBox('login');
+        } else {
+            alert("Lỗi: " + (data.message || data));
+        }
+    } catch {
+        alert("Lỗi kết nối khi đặt lại mật khẩu!");
+    }
+}
+
+// Tải thông tin hồ sơ người dùng qua JWT Token (Đã chuẩn hóa bóc tách dữ liệu)
 async function loadUserProfile() {
     const token = getToken();
-    if (!token) return;
+    if (!token) {
+        applyGuestMode();
+        return;
+    }
 
     try {
         const res = await fetch("/api/auth/profile", {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
-        if (res.status === 401) {
+        if (!res.ok) {
             removeToken();
-            checkAuthStatus();
+            applyGuestMode();
             return;
         }
 
-        if (res.ok) {
-            const text = await res.text();
-            if (!text) return;
-            const profile = JSON.parse(text);
+        const rawData = await res.json();
+        const profile = rawData.user ? rawData.user : rawData;
 
-            const titleName = document.getElementById("headerUserNameTitle");
-            const headerAvatar = document.getElementById("headerAvatar");
-            const headerUserName = document.getElementById("headerUserName");
-            const headerUserRole = document.getElementById("headerUserRole");
-            const headerUserAvatar = document.getElementById("headerUserAvatar");
-
-            if (titleName) titleName.innerText = `Xin chào, ${profile.fullName} 👋`;
-            if (headerUserName) headerUserName.innerText = profile.fullName;
-            if (headerUserRole) headerUserRole.innerText = profile.role || "TÀI KHOẢN VIP";
-            if (headerAvatar) headerAvatar.innerText = profile.fullName.charAt(0).toUpperCase();
-            if (headerUserAvatar) headerUserAvatar.innerText = profile.fullName.charAt(0).toUpperCase();
+        const uid = profile.userId || rawData.userId;
+        if (uid) {
+            setCurrentUserId(uid);
         }
+
+        const titleName = document.getElementById("headerUserNameTitle");
+        const headerAvatar = document.getElementById("headerAvatar");
+        const roleBadge = document.getElementById("badgeUserRole");
+        const btnAuth = document.getElementById("btnHeaderAuth") || document.querySelector(".btn-auth-header") || document.querySelector(".btn-logout-header");
+
+        const displayName = profile.fullName || rawData.fullName || "Người dùng";
+        if (titleName) titleName.innerText = `Xin chào, ${displayName} 👋`;
+        if (headerAvatar) headerAvatar.innerText = displayName.charAt(0).toUpperCase();
+
+        const roleName = profile.role || rawData.role || "User";
+        if (roleBadge) {
+            const isVip = roleName.toUpperCase() === "VIP";
+            roleBadge.innerText = isVip ? "TÀI KHOẢN VIP" : "GÓI FREE";
+            roleBadge.style.background = isVip ? "#dcfce7" : "#fee2e2";
+            roleBadge.style.color = isVip ? "#166534" : "#ef4444";
+        }
+
+        if (btnAuth) {
+            btnAuth.innerHTML = `<i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất`;
+            btnAuth.onclick = handleLogout;
+            btnAuth.style.background = "#fee2e2";
+            btnAuth.style.color = "#dc2626";
+            btnAuth.style.borderColor = "#fecaca";
+        }
+
+        const bmiVal = document.getElementById('profBmiVal');
+        const bmiCat = document.getElementById('profBmiCat');
+        const bmrVal = document.getElementById('profBmrVal');
+        const tdeeVal = document.getElementById('profTdeeVal');
+        const targetWat = document.getElementById('profTargetWater');
+        const desc = document.getElementById('profileBurnDesc');
+
+        const bmrValue = rawData.bmr ?? profile.bmr ?? 0;
+        const tdeeValue = rawData.tdee ?? profile.tdee ?? 0;
+        const bmiValue = rawData.bmi ?? profile.bmi ?? "--";
+        const bmiCategory = rawData.bmiCategory ?? profile.bmiCategory ?? "Bình thường";
+        const waterValue = profile.targetWater ?? rawData.targetWater ?? 2.3;
+
+        if (bmiVal) bmiVal.innerText = bmiValue;
+        if (bmiCat) bmiCat.innerText = bmiCategory;
+        if (bmrVal) bmrVal.innerText = `${bmrValue} kcal`;
+        if (tdeeVal) tdeeVal.innerText = `${tdeeValue} kcal`;
+        if (targetWat) targetWat.innerText = `${waterValue} L`;
+        if (desc) desc.innerText = rawData.naturalBurnDesc || `${displayName} có mức tiêu hao BMR là ${bmrValue} kcal.`;
+
+        const fName = document.getElementById('profFullName');
+        const fGen = document.getElementById('profGender');
+        const fAge = document.getElementById('profAge');
+        const fHeight = document.getElementById('profHeight');
+        const fWeight = document.getElementById('profWeight');
+        const fAct = document.getElementById('profActivity');
+        const fGoal = document.getElementById('profGoal');
+
+        if (fName) fName.value = displayName;
+        if (fGen) fGen.value = profile.gender || rawData.gender || 'Nam';
+        if (fAge) fAge.value = profile.age || rawData.age || 20;
+        if (fHeight) fHeight.value = profile.height || rawData.height || 170;
+        if (fWeight) fWeight.value = profile.weight || rawData.weight || 60;
+        if (fAct) fAct.value = profile.activityLevel || rawData.activityLevel || 'Vận động vừa';
+        if (fGoal) fGoal.value = profile.goal || rawData.goal || 'Duy trì';
     } catch (err) {
         console.error("Lỗi nạp User Profile:", err);
     }
 }
 
-function handleLogout() {
-    if (!confirm("Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc để đổi tài khoản?")) return;
-    removeToken();
-    showNotification("Đã đăng xuất khỏi hệ thống!");
-    window.location.href = "/Auth/Login";
-}
+// Hiệu chỉnh thông tin hồ sơ thể trạng
+async function saveProfileChanges() {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
 
-function showNotification(message) {
-    let notification = document.getElementById("toastBox");
-    if (!notification) {
-        notification = document.createElement("div");
-        notification.id = "toastBox";
-        notification.className = "notification";
-        document.body.appendChild(notification);
+    const uid = getCurrentUserId();
+    const fullName = document.getElementById('profFullName')?.value.trim();
+    const gender = document.getElementById('profGender')?.value || "Nam";
+    const age = parseInt(document.getElementById('profAge')?.value) || 20;
+    const height = parseFloat(document.getElementById('profHeight')?.value) || 173;
+    const weight = parseFloat(document.getElementById('profWeight')?.value) || 60;
+    const activityLevel = document.getElementById('profActivity')?.value || "Vận động vừa";
+    const goal = document.getElementById('profGoal')?.value || "Duy trì";
+
+    if (!fullName) return alert("Vui lòng nhập họ và tên!");
+
+    const payload = { userId: uid, fullName, gender, age, height, weight, activityLevel, goal };
+
+    try {
+        const res = await fetch('/api/lifestyle/update-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            showNotification('🎉 Cập nhật hồ sơ thể trạng thành công!');
+            await loadUserProfile();
+            await loadDashboardData();
+        } else {
+            alert('Không thể cập nhật hồ sơ!');
+        }
+    } catch {
+        alert('Lỗi kết nối máy chủ!');
     }
-    notification.textContent = message;
-    notification.style.opacity = "1";
-    clearTimeout(notification.timer);
-    notification.timer = setTimeout(() => {
-        notification.style.opacity = "0";
-    }, 2400);
-}
-
-function formatDuration(totalSeconds) {
-    if (totalSeconds < 60) return `${totalSeconds} giây`;
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    if (secs === 0) return `${mins} phút`;
-    return `${mins} phút ${secs} giây`;
 }
 
 // ==========================================
@@ -193,7 +468,6 @@ function switchEtmTab(tabName) {
         if (n) n.classList.toggle('active', t === tabName);
     });
 
-    // Ẩn tất cả các view con
     ['landing', 'planner', 'statistics', 'water', 'sleep', 'profile'].forEach(t => {
         const v = document.getElementById(`view-etm-${t}`);
         if (v) v.style.display = 'none';
@@ -222,25 +496,46 @@ function switchEtmTab(tabName) {
             if (macroSub) macroSub.innerText = 'Chỉ tính các món đã được đánh dấu tích [✓]';
         }
 
-        loadEtmPlanForCurrentDate();
+        if (getToken()) {
+            loadEtmPlanForCurrentDate();
+        } else {
+            applyGuestMode();
+        }
     } else {
         const targetView = document.getElementById(`view-etm-${tabName}`);
         if (targetView) targetView.style.display = 'block';
 
-        if (tabName === 'statistics') loadStatistics(currentStatDays);
-        if (tabName === 'profile') fetchUserProfileDetails();
+        if (getToken()) {
+            if (tabName === 'statistics') {
+                loadStatistics(currentStatDays);
+                loadMachineLearningPrediction(); 
+            }
+            if (tabName === 'water') loadWaterSummary();
+            if (tabName === 'sleep') { loadSleepToday(); calculateBedtimes(); }
+            if (tabName === 'profile') loadUserProfile();
+        } else {
+            applyGuestMode();
+        }
     }
 }
 
 function navigateDate(offset) {
     currentPlanDate.setDate(currentPlanDate.getDate() + offset);
-    loadEtmPlanForCurrentDate();
+    if (getToken()) loadEtmPlanForCurrentDate();
 }
 
 async function loadEtmPlanForCurrentDate() {
+    const token = getToken();
+    if (!token) return applyGuestMode();
+
+    const uid = getCurrentUserId();
     const dateStr = currentPlanDate.toISOString().split('T')[0];
+
     try {
-        const res = await fetch(`/api/lifestyle/plan-by-date?userId=1&dateStr=${dateStr}`);
+        const res = await fetch(`/api/lifestyle/plan-by-date?userId=${uid}&dateStr=${dateStr}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) return;
         const data = await res.json();
         currentDayPlanData = data;
 
@@ -292,7 +587,6 @@ async function loadEtmPlanForCurrentDate() {
 
         renderMealsColumn(data.meals);
         updateMacroSummaryDisplay();
-
     } catch (err) {
         console.error("Lỗi nạp thực đơn ETM:", err);
     }
@@ -301,6 +595,11 @@ async function loadEtmPlanForCurrentDate() {
 function renderMealsColumn(meals) {
     const container = document.getElementById('mealsContainerList');
     if (!container) return;
+
+    if (!meals || meals.length === 0) {
+        container.innerHTML = '<p style="color:var(--gray); text-align:center; padding:20px;">Chưa có món ăn nào trong thực đơn ngày này.</p>';
+        return;
+    }
 
     const bMeals = meals.filter(m => m.mealType.toLowerCase() === 'breakfast');
     const lMeals = meals.filter(m => m.mealType.toLowerCase() === 'lunch');
@@ -324,7 +623,7 @@ function renderMealsColumn(meals) {
                 <div class="meal-item-row" data-meal-id="${item.dailyMealId}" data-calories="${item.calories}">
                     <div style="display:flex; align-items:center; gap:12px;">
                         ${isTrackingMode ? `
-                            <input type="checkbox" checked class="meal-check-box" style="width:20px; height:20px; cursor:pointer; accent-color:var(--primary);" onchange="handleMealCheckboxChange()" />
+                            <input type="checkbox" ${item.isEaten ? 'checked' : ''} class="meal-check-box" style="width:20px; height:20px; cursor:pointer; accent-color:var(--primary);" onchange="toggleMealEatenStatus(${item.dailyMealId})" />
                         ` : `
                             <span style="color:var(--gray); font-size:1.1rem;">📌</span>
                         `}
@@ -390,15 +689,18 @@ function updateMacroSummaryDisplay() {
     const mPro = document.getElementById('macroProteinVal');
     if (mPro) mPro.innerText = `${proteinG}g`;
 
-    const cP = caloSum > 0 ? 50 : 0;
-    const fP = caloSum > 0 ? 25 : 0;
-    const pP = caloSum > 0 ? 25 : 0;
-
-    renderMacroPieChart(cP, fP, pP);
+    renderMacroPieChart(50, 25, 25);
 }
 
 async function handleSwapMeal(dailyMealId) {
-    const res = await fetch(`/api/lifestyle/swap-meal/${dailyMealId}?userId=1`, { method: 'POST' });
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
+    const res = await fetch(`/api/lifestyle/swap-meal/${dailyMealId}?userId=${uid}`, {
+        method: 'POST',
+        headers: { "Authorization": `Bearer ${token}` }
+    });
     if (res.ok) {
         loadEtmPlanForCurrentDate();
     } else {
@@ -408,7 +710,7 @@ async function handleSwapMeal(dailyMealId) {
 
 function renderMacroPieChart(cPercent, fPercent, pPercent) {
     const canvas = document.getElementById('canvasMacroWheel');
-    if (!canvas) return;
+    if (!canvas || typeof Chart === 'undefined') return;
     const ctx = canvas.getContext('2d');
     if (macroWheelChartInstance) macroWheelChartInstance.destroy();
 
@@ -478,6 +780,10 @@ function closeGeneratorDrawer() {
 }
 
 async function executeMealGenerator() {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     const focus = document.getElementById('genSelectFocus')?.value || "Balanced";
     const priceLimit = document.getElementById('genDailyPriceLimit')?.value || "No limit";
     const carbsTarget = document.getElementById('genTargetCarbsAs')?.value || "Total carbs";
@@ -495,9 +801,9 @@ async function executeMealGenerator() {
     };
 
     try {
-        const res = await fetch('/api/lifestyle/generate-meal-plan?userId=1', {
+        const res = await fetch(`/api/lifestyle/generate-meal-plan?userId=${uid}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(payload)
         });
 
@@ -515,7 +821,14 @@ async function executeMealGenerator() {
 }
 
 async function toggleUserVipRole() {
-    const res = await fetch('/api/lifestyle/toggle-vip-role?userId=1', { method: 'POST' });
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
+    const res = await fetch(`/api/lifestyle/toggle-vip-role?userId=${uid}`, {
+        method: 'POST',
+        headers: { "Authorization": `Bearer ${token}` }
+    });
     if (res.ok) {
         loadEtmPlanForCurrentDate();
     }
@@ -530,8 +843,14 @@ async function activateVipDemo() {
 // 2. DASHBOARD OVERVIEW & CHỈ SỐ SINH TRẮC
 // ==========================================
 async function loadDashboardData() {
+    const token = getToken();
+    if (!token) return applyGuestMode();
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/dashboard-data?userId=1");
+        const res = await fetch(`/api/lifestyle/dashboard-data?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) return;
 
         const text = await res.text();
@@ -615,10 +934,41 @@ function updateWaterUI() {
         }
     });
 }
+async function toggleMealEatenStatus(dailyMealId) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
+    try {
+        const res = await fetch(`/api/lifestyle/toggle-meal-eaten/${dailyMealId}?userId=${uid}`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            showNotification(data.isEaten ? "✅ Đã đánh dấu đã ăn món này!" : "🔄 Đã bỏ đánh dấu!");
+            // Cập nhật lại tổng calo thực tế trên giao diện và macro
+            await loadDashboardData();
+            updateMacroSummaryDisplay();
+        } else {
+            alert("Không thể cập nhật trạng thái món ăn!");
+        }
+    } catch (err) {
+        console.error("Lỗi khi thay đổi trạng thái món ăn:", err);
+        alert("Lỗi kết nối máy chủ!");
+    }
+}
 
 async function loadTodayMealsOverview() {
+    const token = getToken();
+    if (!token) return;
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/today-meals?userId=1");
+        const res = await fetch(`/api/lifestyle/today-meals?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) return;
 
         const text = await res.text();
@@ -678,8 +1028,14 @@ async function loadTodayMealsOverview() {
 // 3. QUẢN LÝ LƯỢNG NƯỚC UỐNG (HYDRATION)
 // ==========================================
 async function loadWaterSummary() {
+    const token = getToken();
+    if (!token) return applyGuestMode();
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/water-summary?userId=1");
+        const res = await fetch(`/api/lifestyle/water-summary?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) return;
 
         const text = await res.text();
@@ -725,10 +1081,14 @@ async function loadWaterSummary() {
 }
 
 async function saveWaterToBackend(amountMl, waterType) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/water-logs?userId=1", {
+        const res = await fetch(`/api/lifestyle/water-logs?userId=${uid}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ amountMl: amountMl, waterType: waterType })
         });
 
@@ -759,9 +1119,16 @@ function handleCustomWater() {
 }
 
 async function handleDeleteWaterLog(id) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     if (!confirm("Bạn có chắc muốn xóa lần uống nước này?")) return;
     try {
-        const res = await fetch(`/api/lifestyle/water-logs/${id}?userId=1`, { method: "DELETE" });
+        const res = await fetch(`/api/lifestyle/water-logs/${id}?userId=${uid}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (res.ok) {
             showNotification("🗑️ Đã xóa lần uống nước!");
             loadWaterSummary();
@@ -804,6 +1171,10 @@ function calculateBedtimes() {
 }
 
 async function handleSaveSleepLog() {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     const bedVal = document.getElementById("inputSleepBed")?.value;
     const wakeVal = document.getElementById("inputSleepWake")?.value;
     const rating = document.getElementById("inputSleepRating")?.value || "Normal";
@@ -815,9 +1186,9 @@ async function handleSaveSleepLog() {
     const wakeTime = `${todayStr}T${wakeVal}:00`;
 
     try {
-        const res = await fetch("/api/lifestyle/sleep-logs?userId=1", {
+        const res = await fetch(`/api/lifestyle/sleep-logs?userId=${uid}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ bedTime, wakeTime, qualityRating: rating })
         });
 
@@ -837,8 +1208,14 @@ async function handleSaveSleepLog() {
 }
 
 async function loadSleepToday() {
+    const token = getToken();
+    if (!token) return applyGuestMode();
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/sleep-today?userId=1");
+        const res = await fetch(`/api/lifestyle/sleep-today?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         const badge = document.getElementById("sleepScoreBadge");
         const resultBox = document.getElementById("sleepDetailResult");
 
@@ -891,6 +1268,10 @@ async function loadSleepToday() {
 // 5. THỰC ĐƠN KHO MÓN & MÔ HÌNH HỌC MÁY KNN
 // ==========================================
 async function handleSpinFood() {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     const type = document.getElementById("wheelMealType")?.value || "Lunch";
     const resCard = document.getElementById("spinResultCard");
     const nameEl = document.getElementById("spinFoodName");
@@ -903,9 +1284,9 @@ async function handleSpinFood() {
     if (tagEl) tagEl.innerText = "";
 
     try {
-        const res = await fetch('/api/lifestyle/ai-knn-recommend?userId=1', {
+        const res = await fetch(`/api/lifestyle/ai-knn-recommend?userId=${uid}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ mealType: type })
         });
         const data = await res.json();
@@ -935,10 +1316,14 @@ async function handleSpinFood() {
 }
 
 async function applyMealToToday(mealId, mealType) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/apply-today-meal?userId=1", {
+        const res = await fetch(`/api/lifestyle/apply-today-meal?userId=${uid}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ mealId: mealId, mealType: mealType })
         });
 
@@ -1037,10 +1422,14 @@ async function handleLogActivityManual() {
 }
 
 async function saveActivityToBackend(type, durationSeconds) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/log-activity?userId=1", {
+        const res = await fetch(`/api/lifestyle/log-activity?userId=${uid}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ activityType: type, durationSeconds: durationSeconds })
         });
 
@@ -1057,12 +1446,18 @@ async function saveActivityToBackend(type, durationSeconds) {
 }
 
 async function loadTodayActivities() {
+    const token = getToken();
+    if (!token) return;
+
+    const uid = getCurrentUserId();
     const container = document.getElementById("todayActivityList");
     const badge = document.getElementById("activityCountBadge");
     if (!container) return;
 
     try {
-        const res = await fetch("/api/lifestyle/today-activities?userId=1");
+        const res = await fetch(`/api/lifestyle/today-activities?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         const text = await res.text();
         const list = text ? JSON.parse(text) : [];
         if (badge) badge.innerText = `${list.length} buổi tập`;
@@ -1096,9 +1491,16 @@ async function loadTodayActivities() {
 }
 
 async function handleDeleteActivity(id) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     if (!confirm("Bạn có chắc muốn xóa buổi tập này?")) return;
     try {
-        const res = await fetch(`/api/lifestyle/activities/${id}?userId=1`, { method: "DELETE" });
+        const res = await fetch(`/api/lifestyle/activities/${id}?userId=${uid}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (res.ok) {
             showNotification("🗑️ Đã xóa buổi tập!");
             loadTodayActivities();
@@ -1110,9 +1512,16 @@ async function handleDeleteActivity(id) {
 }
 
 async function handleResetAllActivities() {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     if (!confirm("Bạn có chắc muốn reset toàn bộ hoạt động hôm nay về 0 bước?")) return;
     try {
-        const res = await fetch("/api/lifestyle/reset-today-activities?userId=1", { method: "POST" });
+        const res = await fetch(`/api/lifestyle/reset-today-activities?userId=${uid}`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (res.ok) {
             showNotification("🔄 Đã reset hoạt động hôm nay về 0!");
             loadTodayActivities();
@@ -1127,10 +1536,16 @@ async function handleResetAllActivities() {
 // 7. LỊCH TRÌNH TIMELINE & AI SCHEDULER
 // ==========================================
 async function loadOverviewTimelines() {
+    const token = getToken();
+    if (!token) return;
+
+    const uid = getCurrentUserId();
     const container = document.getElementById("overviewTimelineList");
     if (!container) return;
     try {
-        const res = await fetch("/api/lifestyle/timelines?userId=1");
+        const res = await fetch(`/api/lifestyle/timelines?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         const text = await res.text();
         const list = text ? JSON.parse(text) : [];
         if (!list || list.length === 0) {
@@ -1154,11 +1569,17 @@ async function loadOverviewTimelines() {
 }
 
 async function loadManageTimelines() {
+    const token = getToken();
+    if (!token) return;
+
+    const uid = getCurrentUserId();
     const container = document.getElementById("manageTimelineList");
     const countBadge = document.getElementById("timelineCountBadge");
     if (!container) return;
     try {
-        const res = await fetch("/api/lifestyle/timelines?userId=1");
+        const res = await fetch(`/api/lifestyle/timelines?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         const text = await res.text();
         const list = text ? JSON.parse(text) : [];
         if (countBadge) countBadge.textContent = `${list.length} công việc`;
@@ -1185,10 +1606,14 @@ async function loadManageTimelines() {
 }
 
 async function generateSmartSchedule(archetype) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     try {
-        const res = await fetch("/api/lifestyle/generate-schedule?userId=1", {
+        const res = await fetch(`/api/lifestyle/generate-schedule?userId=${uid}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ archetype: archetype })
         });
         if (res.ok) {
@@ -1202,14 +1627,18 @@ async function generateSmartSchedule(archetype) {
 }
 
 async function handleCreateTimeline() {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     const timeSlot = document.getElementById("inputTimeSlot")?.value.trim();
     const title = document.getElementById("inputTitle")?.value.trim();
     const category = document.getElementById("inputCategory")?.value || "Task";
     if (!timeSlot || !title) return alert("Vui lòng nhập đủ thông tin!");
 
-    const res = await fetch("/api/lifestyle/timelines?userId=1", {
+    const res = await fetch(`/api/lifestyle/timelines?userId=${uid}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ timeSlot, title, category })
     });
     if (res.ok) {
@@ -1221,13 +1650,27 @@ async function handleCreateTimeline() {
 }
 
 async function handleToggleStatus(id) {
-    await fetch(`/api/lifestyle/timelines/${id}/toggle`, { method: "PATCH" });
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
+    await fetch(`/api/lifestyle/timelines/${id}/toggle?userId=${uid}`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
     loadManageTimelines();
 }
 
 async function handleDeleteTimeline(id) {
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     if (!confirm("Xác nhận xóa?")) return;
-    await fetch(`/api/lifestyle/timelines/${id}`, { method: "DELETE" });
+    await fetch(`/api/lifestyle/timelines/${id}?userId=${uid}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
     showNotification("🗑️ Đã xóa mốc thời gian!");
     loadManageTimelines();
 }
@@ -1333,7 +1776,6 @@ function ensureStatisticsCustomUI() {
                             <th style="padding: 12px 14px;">Calo Đốt</th>
                             <th style="padding: 12px 14px;">Cân Bằng Calo</th>
                             <th style="padding: 12px 14px;">Nước Uống</th>
-                            <th style="padding: 12px 14px;">Vận Động</th>
                         </tr>
                     </thead>
                     <tbody id="statHistoryTableBody"></tbody>
@@ -1361,11 +1803,17 @@ function handleCustomDaysSearch() {
 }
 
 async function loadStatistics(days = 7) {
+    const token = getToken();
+    if (!token) return applyGuestMode();
+
+    const uid = getCurrentUserId();
     currentStatDays = days;
     ensureStatisticsCustomUI();
 
     try {
-        const res = await fetch(`/api/lifestyle/statistics?userId=1&days=${days}`);
+        const res = await fetch(`/api/lifestyle/statistics?userId=${uid}&days=${days}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) return;
 
         const text = await res.text();
@@ -1388,19 +1836,16 @@ async function loadStatistics(days = 7) {
         const caloIn = data.caloriesIn || [];
         const caloBurned = data.caloriesBurned || [];
         const water = data.water || [];
-        const steps = data.steps || caloBurned.map(c => Math.round(c * 25));
 
         const totalBurn = caloBurned.reduce((a, b) => a + b, 0);
         const sumCaloIn = caloIn.reduce((a, b) => a + b, 0);
         const avgCaloIn = labels.length > 0 ? Math.round(sumCaloIn / labels.length) : 0;
         const sumWater = water.reduce((a, b) => a + b, 0);
         const avgWater = labels.length > 0 ? (sumWater / labels.length).toFixed(1) : 0;
-        const totalSteps = steps.reduce((a, b) => a + b, 0);
 
         if (document.getElementById('statTotalBurned')) document.getElementById('statTotalBurned').innerText = `${totalBurn.toLocaleString()} kcal`;
         if (document.getElementById('statAvgCaloIn')) document.getElementById('statAvgCaloIn').innerText = `${avgCaloIn.toLocaleString()} kcal/ngày`;
         if (document.getElementById('statAvgWater')) document.getElementById('statAvgWater').innerText = `${avgWater} L/ngày`;
-        if (document.getElementById('statTotalSteps')) document.getElementById('statTotalSteps').innerText = `${totalSteps.toLocaleString()} bước`;
 
         const chartCaloEl = document.getElementById('caloChart');
         if (chartCaloEl && typeof Chart !== 'undefined') {
@@ -1461,7 +1906,6 @@ async function loadStatistics(days = 7) {
                 const cOut = caloBurned[idx] || 0;
                 const net = cIn - cOut;
                 const w = water[idx] || 0;
-                const st = steps[idx] || 0;
                 const isDeficit = net <= 0;
 
                 return `
@@ -1475,7 +1919,6 @@ async function loadStatistics(days = 7) {
                             </span>
                         </td>
                         <td style="padding:12px 14px; color:#0284c7; font-weight:700;">${w} L</td>
-                        <td style="padding:12px 14px; color:var(--primary-dark); font-weight:600;">${st.toLocaleString()} bước</td>
                     </tr>
                 `;
             }).reverse().join('');
@@ -1486,140 +1929,41 @@ async function loadStatistics(days = 7) {
 }
 
 // ==========================================
-// 9. HỒ SƠ THỂ TRẠNG CÁ NHÂN (MIFFLIN-ST JEOR)
+// 9. THÔNG BÁO & KHỞI CHẠY HỆ THỐNG
 // ==========================================
-async function fetchUserProfileDetails() {
-    try {
-        let profile = null;
-        const token = getToken();
-
-        if (token) {
-            const res = await fetch('/api/auth/profile', {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const text = await res.text();
-                if (text) profile = JSON.parse(text);
-            }
-        }
-
-        if (!profile) {
-            const dRes = await fetch('/api/lifestyle/dashboard-data?userId=1');
-            let dData = {};
-            if (dRes.ok) {
-                const dText = await dRes.text();
-                if (dText) dData = JSON.parse(dText);
-            }
-
-            const w = 60; const h = 173; const a = 20;
-            const bmrCalc = Math.round(10 * w + 6.25 * h - 5 * a + 5);
-            const tdeeCalc = Math.round(bmrCalc * 1.55);
-
-            profile = {
-                fullName: dData.fullName || "Dương Thu Hậu",
-                gender: "Nam",
-                age: a,
-                height: h,
-                weight: w,
-                activityLevel: "Vận động vừa",
-                goal: "Duy trì",
-                bmi: dData.bmi || 20.05,
-                bmiCategory: "Bình thường",
-                bmr: bmrCalc,
-                tdee: tdeeCalc,
-                targetCalories: dData.targetCalories || 2150,
-                targetWater: dData.targetWater || 2.3,
-                naturalBurnDesc: `Nam ${a} tuổi, cao ${h}cm, nặng ${w}kg thì dù nằm ngủ cả ngày vẫn đốt tự nhiên khoảng ${bmrCalc} kcal (Chuẩn Mifflin-St Jeor)`
-            };
-        }
-
-        const fName = document.getElementById('profFullName');
-        const fGen = document.getElementById('profGender');
-        const fAge = document.getElementById('profAge');
-        const fHeight = document.getElementById('profHeight');
-        const fWeight = document.getElementById('profWeight');
-        const fAct = document.getElementById('profActivity');
-        const fGoal = document.getElementById('profGoal');
-
-        if (fName) fName.value = profile.fullName;
-        if (fGen) fGen.value = profile.gender || 'Nam';
-        if (fAge) fAge.value = profile.age || 20;
-        if (fHeight) fHeight.value = profile.height;
-        if (fWeight) fWeight.value = profile.weight;
-        if (fAct) fAct.value = profile.activityLevel || 'Vận động vừa';
-        if (fGoal) fGoal.value = profile.goal || 'Duy trì';
-
-        const desc = document.getElementById('profileBurnDesc');
-        const bmiVal = document.getElementById('profBmiVal');
-        const bmiCat = document.getElementById('profBmiCat');
-        const bmrVal = document.getElementById('profBmrVal');
-        const tdeeVal = document.getElementById('profTdeeVal');
-        const targetCal = document.getElementById('profTargetCalo');
-        const targetWat = document.getElementById('profTargetWater');
-
-        if (desc) desc.innerText = profile.naturalBurnDesc;
-        if (bmiVal) bmiVal.innerText = profile.bmi;
-        if (bmiCat) bmiCat.innerText = profile.bmiCategory || "Bình thường";
-        if (bmrVal) bmrVal.innerText = profile.bmr + ' kcal';
-        if (tdeeVal) tdeeVal.innerText = profile.tdee + ' kcal';
-        if (targetCal) targetCal.innerText = profile.targetCalories + ' kcal';
-        if (targetWat) targetWat.innerText = profile.targetWater + ' L';
-    } catch (err) {
-        console.error("Lỗi tải thông tin cá nhân:", err);
+function showNotification(message) {
+    let notification = document.getElementById("toastBox");
+    if (!notification) {
+        notification = document.createElement("div");
+        notification.id = "toastBox";
+        notification.className = "notification";
+        document.body.appendChild(notification);
     }
+    notification.textContent = message;
+    notification.style.opacity = "1";
+    clearTimeout(notification.timer);
+    notification.timer = setTimeout(() => {
+        notification.style.opacity = "0";
+    }, 2400);
 }
 
-async function saveProfileChanges() {
-    const fullName = document.getElementById('profFullName')?.value.trim();
-    const gender = document.getElementById('profGender')?.value || "Nam";
-    const age = parseInt(document.getElementById('profAge')?.value) || 20;
-    const height = parseFloat(document.getElementById('profHeight')?.value) || 173;
-    const weight = parseFloat(document.getElementById('profWeight')?.value) || 60;
-    const activityLevel = document.getElementById('profActivity')?.value || "Vận động vừa";
-    const goal = document.getElementById('profGoal')?.value || "Duy trì";
-
-    if (!fullName) return alert("Vui lòng nhập họ và tên!");
-
-    const payload = { userId: 1, fullName, gender, age, height, weight, activityLevel, goal };
-
-    try {
-        const res = await fetch('/api/lifestyle/update-profile', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            showNotification('🎉 Cập nhật hồ sơ thể trạng thành công!');
-            fetchUserProfileDetails();
-            loadDashboardData();
-        } else {
-            alert('Không thể cập nhật hồ sơ!');
-        }
-    } catch {
-        alert('Lỗi kết nối máy chủ!');
-    }
+function formatDuration(totalSeconds) {
+    if (totalSeconds < 60) return `${totalSeconds} giây`;
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    if (secs === 0) return `${mins} phút`;
+    return `${mins} phút ${secs} giây`;
 }
 
-// ==========================================
-// 10. KHỞI CHẠY HỆ THỐNG KHI TẢI TRANG
-// ==========================================
-document.addEventListener("DOMContentLoaded", function () {
-    checkAuthStatus();
-    loadDashboardData();
-    loadTodayMealsOverview();
+document.addEventListener("DOMContentLoaded", async function () {
+    await checkAuthStatus();
     loadOverviewTimelines();
-
-    // Mặc định khởi chạy vào Tab Trang chủ & Giới thiệu
-    if (document.getElementById('view-etm-landing')) {
-        switchEtmTab('landing');
-    } else if (document.getElementById('view-etm-planner')) {
-        switchEtmTab('plan');
-    }
+    switchEtmTab('landing');
+    calculateBedtimes();
 });
 
 // ==========================================
-// 11. ĐIỀU KHIỂN CHATBOT AI (FLOATING WIDGET)
+// 10. ĐIỀU KHIỂN CHATBOT AI (FLOATING WIDGET)
 // ==========================================
 function toggleChatWindow() {
     const chatWin = document.getElementById("chatWindow");
@@ -1639,11 +1983,14 @@ function handleChatEnter(e) {
 }
 
 async function loadChatHistory() {
-    try {
-        const token = getToken();
-        const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+    const token = getToken();
+    if (!token) return;
 
-        const res = await fetch("/api/chat/history?userId=1", { headers });
+    const uid = getCurrentUserId();
+    try {
+        const res = await fetch(`/api/chat/history?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) return;
         const list = await res.json();
         const chatBody = document.getElementById("chatBody");
@@ -1666,10 +2013,13 @@ async function sendChatMessage() {
     const msgText = input ? input.value.trim() : "";
     if (!msgText) return;
 
+    const token = getToken();
+    if (!token) return openAuthModal('login');
+
+    const uid = getCurrentUserId();
     const chatBody = document.getElementById("chatBody");
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // 1. Thêm tin nhắn của User vào giao diện ngay lập tức
     if (chatBody) {
         chatBody.innerHTML += `
             <div class="chat-msg chat-msg-user">
@@ -1682,7 +2032,6 @@ async function sendChatMessage() {
 
     input.value = "";
 
-    // 2. Thêm hiệu ứng chờ phản hồi
     const loadingId = "loadingMsg_" + Date.now();
     if (chatBody) {
         chatBody.innerHTML += `
@@ -1693,16 +2042,16 @@ async function sendChatMessage() {
         chatBody.scrollTop = chatBody.scrollHeight;
     }
 
-    // 3. Gửi câu hỏi lên API C#
     try {
-        const token = getToken();
-        const headers = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        };
 
         const res = await fetch("/api/chat/ask", {
             method: "POST",
             headers: headers,
-            body: JSON.stringify({ userId: 1, message: msgText })
+            body: JSON.stringify({ userId: uid, message: msgText })
         });
 
         const loadingEl = document.getElementById(loadingId);
@@ -1727,5 +2076,28 @@ async function sendChatMessage() {
         const loadingEl = document.getElementById(loadingId);
         if (loadingEl) loadingEl.remove();
         alert("Lỗi kết nối máy chủ chat!");
+    }
+}
+// ==========================================
+// 11. TÍCH HỢP HỌC MÁY (MACHINE LEARNING INSIGHTS)
+// ==========================================
+async function loadMachineLearningPrediction() {
+    const token = getToken();
+    if (!token) return;
+
+    const uid = getCurrentUserId();
+    try {
+        const res = await fetch(`/api/lifestyle/run-ml-prediction?userId=${uid}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const insightBox = document.getElementById('statInsightBox');
+            if (insightBox) {
+                insightBox.innerHTML = `🤖 <strong>[Mô hình Học máy ML.NET]:</strong> ${data.aiEvaluation} (Biến thiên dự kiến: <b>${data.predictedWeightChangeNext30Days} kg</b> qua ${data.trainedSamplesCount} mẫu huấn luyện).`;
+            }
+        }
+    } catch (err) {
+        console.error("Lỗi gọi mô hình học máy:", err);
     }
 }

@@ -43,9 +43,9 @@ namespace SmartLifePlanner.Controllers
                 .SumAsync(w => (int?)w.HydrationAmountMl) ?? 0;
             double waterLiters = Math.Round(totalWaterMl / 1000.0, 2);
 
-            // Tính calo ăn uống từ bảng DailyMeals
+            // Chỉ tính calo từ các món user đã tích chọn "Đã ăn" thực tế
             int consumedCalories = await _context.DailyMeals
-                .Where(dm => dm.UserId == userId && dm.PlanDate == today)
+                .Where(dm => dm.UserId == userId && dm.PlanDate == today && dm.IsEaten)
                 .Include(dm => dm.Meal)
                 .SumAsync(dm => (int?)dm.Meal!.Calories) ?? 0;
 
@@ -71,13 +71,13 @@ namespace SmartLifePlanner.Controllers
 
             double tdee = bmr * pal;
             double heightM = user.Height / 100.0;
-            double bmi = Math.Round(user.Weight / (heightM * heightM), 1);
+            double bmi = heightM > 0 ? Math.Round(user.Weight / (heightM * heightM), 1) : 0;
 
             // Nước động tự động tăng bù theo calo đốt
             double dynamicTargetWater = Math.Round(user.TargetWater + (burnedCalories * 0.0012), 1);
             int dynamicTargetCalories = (int)Math.Round(tdee + burnedCalories);
 
-            // Cập nhật bảng DailyTrackings làm lịch sử
+            // Cập nhật bảng DailyTrackings làm lịch sử ngày hôm nay
             var tracking = await _context.DailyTrackings.FirstOrDefaultAsync(t => t.UserId == userId && t.TrackingDate == today);
             if (tracking == null)
             {
@@ -114,6 +114,27 @@ namespace SmartLifePlanner.Controllers
         // ==========================================
         // 2. KẾ HOẠCH & THEO DÕI THEO NGÀY (EAT THIS MUCH STYLE)
         // ==========================================
+        [HttpPost("toggle-meal-eaten/{dailyMealId}")]
+        public async Task<IActionResult> ToggleMealEaten(int dailyMealId, [FromQuery] int userId = 1)
+        {
+            var dailyMeal = await _context.DailyMeals
+                .FirstOrDefaultAsync(dm => dm.DailyMealId == dailyMealId && dm.UserId == userId);
+
+            if (dailyMeal == null) return NotFound("Không tìm thấy món ăn.");
+
+            // Đảo ngược trạng thái đã ăn / chưa ăn
+            dailyMeal.IsEaten = !dailyMeal.IsEaten;
+            await _context.SaveChangesAsync();
+
+            // Tính lại tổng calo thực tế trong ngày
+            var today = DateTime.Today;
+            int totalConsumed = await _context.DailyMeals
+                .Where(dm => dm.UserId == userId && dm.PlanDate == today && dm.IsEaten)
+                .Include(dm => dm.Meal)
+                .SumAsync(dm => (int?)dm.Meal!.Calories) ?? 0;
+
+            return Ok(new { success = true, isEaten = dailyMeal.IsEaten, totalConsumed = totalConsumed });
+        }
         [HttpGet("plan-by-date")]
         public async Task<IActionResult> GetPlanByDate([FromQuery] int userId = 1, [FromQuery] string? dateStr = null)
         {
@@ -138,7 +159,7 @@ namespace SmartLifePlanner.Controllers
                 .Include(dm => dm.Meal)
                 .ToListAsync();
 
-            // Nếu ngày này chưa có thực đơn -> Tự động sinh thực đơn mặc định
+            // Nếu ngày này chưa có thực đơn -> Tự động sinh thực đơn mặc định từ kho
             if (!dailyMeals.Any())
             {
                 var candidateMeals = await _context.Meals.Where(m => m.IsActive).ToListAsync();
@@ -821,63 +842,55 @@ namespace SmartLifePlanner.Controllers
         }
 
         // ==========================================
-        // 9. THỐNG KÊ LỊCH SỬ N NGÀY TỰ DO (/statistics & /history-7days)
+        // 9. THỐNG KÊ LỊCH SỬ THỰC TẾ (KHÔNG SINH DỮ LIỆU GIẢ CŨ)
         // ==========================================
         [HttpGet("statistics")]
         [HttpGet("history-7days")]
         public async Task<IActionResult> GetStatistics([FromQuery] int userId = 1, [FromQuery] int days = 7)
         {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound("Người dùng không tồn tại.");
+
             var today = DateTime.Today;
             days = Math.Clamp(days, 1, 365);
             var startDate = today.AddDays(-(days - 1));
 
+            // Chỉ lấy đúng dữ liệu thực tế của user từ cơ sở dữ liệu
             var trackings = await _context.DailyTrackings
                 .Where(t => t.UserId == userId && t.TrackingDate >= startDate && t.TrackingDate <= today)
                 .OrderBy(t => t.TrackingDate)
                 .ToListAsync();
 
-            if (trackings.Count < days)
+            // Nếu tài khoản mới chưa có tracking hôm nay -> tạo 1 bản ghi rỗng cho ngày hôm nay
+            if (!trackings.Any(t => t.TrackingDate == today))
             {
-                for (int i = 0; i < days; i++)
+                var todayTrack = new DailyTracking
                 {
-                    var curDate = startDate.AddDays(i);
-                    if (!trackings.Any(t => t.TrackingDate == curDate))
-                    {
-                        var mock = new DailyTracking
-                        {
-                            UserId = userId,
-                            TrackingDate = curDate,
-                            CaloriesConsumed = (curDate == today) ? 450 : 1850 + (i * 47) % 380,
-                            WaterConsumed = (curDate == today) ? 0.5 : Math.Round(2.0 + (i % 4) * 0.15, 1),
-                            StepsCount = (curDate == today) ? 120 : 4100 + (i * 620) % 4000
-                        };
-                        _context.DailyTrackings.Add(mock);
-                        trackings.Add(mock);
-                    }
-                }
+                    UserId = userId,
+                    TrackingDate = today,
+                    CaloriesConsumed = 0,
+                    WaterConsumed = 0,
+                    StepsCount = 0
+                };
+                _context.DailyTrackings.Add(todayTrack);
                 await _context.SaveChangesAsync();
-                trackings = trackings.OrderBy(t => t.TrackingDate).ToList();
+                trackings.Add(todayTrack);
             }
 
             var labels = trackings.Select(t => t.TrackingDate.ToString("dd/MM")).ToList();
             var caloIn = trackings.Select(t => t.CaloriesConsumed).ToList();
-            var caloBurned = trackings.Select(t => (int)(t.StepsCount * 0.04) + 120).ToList();
+            var caloBurned = trackings.Select(t => (int)(t.StepsCount * 0.04)).ToList();
             var water = trackings.Select(t => t.WaterConsumed).ToList();
             var steps = trackings.Select(t => t.StepsCount).ToList();
 
-            var oldestDay = trackings.First();
-            var todayData = trackings.Last();
-            int diffCalo = todayData.CaloriesConsumed - oldestDay.CaloriesConsumed;
-            int diffSteps = todayData.StepsCount - oldestDay.StepsCount;
-
-            string compareInsight = $"So với ngày {labels.First()} ({days} ngày trước): " +
-                $"Calo nạp {(diffCalo >= 0 ? "tăng +" : "giảm ")}{diffCalo} kcal, " +
-                $"Vận động {(diffSteps >= 0 ? "tăng +" : "giảm ")}{diffSteps} bước.";
+            string compareInsight = trackings.Count <= 1
+                ? "Chào mừng tài khoản mới! Hãy bắt đầu ghi nhận các bữa ăn và hoạt động hôm nay để phân tích tiến trình."
+                : $"Dữ liệu thực tế ghi nhận từ {labels.First()} đến {labels.Last()}.";
 
             return Ok(new
             {
-                totalDays = days,
-                startDate = startDate.ToString("dd/MM/yyyy"),
+                totalDays = trackings.Count,
+                startDate = trackings.First().TrackingDate.ToString("dd/MM/yyyy"),
                 endDate = today.ToString("dd/MM/yyyy"),
                 labels = labels,
                 caloriesIn = caloIn,
@@ -900,7 +913,6 @@ namespace SmartLifePlanner.Controllers
             var vipRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "VIP");
             var userRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "User");
 
-            // Nếu trong DB chưa có Role VIP thì tự động bổ sung
             if (vipRole == null)
             {
                 vipRole = new Role { RoleName = "VIP" };
@@ -959,7 +971,7 @@ namespace SmartLifePlanner.Controllers
             };
 
             user.TargetCalories = (int)Math.Round(bmr * pal);
-            user.TargetWater = Math.Round(user.Weight * 0.035 + 0.2, 1);
+            user.TargetWater = Math.Round(user.Weight * 0.035, 1);
 
             await _context.SaveChangesAsync();
             return Ok(new { success = true, user });
